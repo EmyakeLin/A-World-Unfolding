@@ -1,0 +1,1133 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 故事创作平台 - 极简比例校准版</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script src="kg-engine.js"></script>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="state-home flex h-screen w-full overflow-hidden select-none">
+
+    <!-- ================= 模态框 ================= -->
+    <div id="edit-modal-overlay" onclick="closeEditModal(event)">
+        <div id="edit-modal-box" onclick="event.stopPropagation()">
+            <div id="edit-modal-header">
+                <div id="edit-modal-header-left">
+                    <div id="edit-modal-type-dot"></div>
+                    <span id="edit-modal-title"></span>
+                    <button id="edit-modal-name-edit" onclick="startEditModalName()" title="编辑名称">
+                        <svg class="w-2.5 h-2.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/>
+                        </svg>
+                    </button>
+                    <span id="edit-modal-type-label"></span>
+                </div>
+                <button id="edit-modal-close" onclick="closeEditModal()" title="关闭">
+                    <svg class="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div id="edit-modal-body"></div>
+        </div>
+    </div>
+
+    <!-- ================= 图谱子模态窗 ================= -->
+    <div id="kg-sub-modal-overlay" onclick="closeKgSubModal(event)">
+        <div id="kg-sub-modal-box" onclick="event.stopPropagation()">
+            <div id="kg-sub-modal-header">
+                <span id="kg-sub-modal-title"></span>
+                <button id="kg-sub-modal-close" onclick="closeKgSubModal()" title="关闭">
+                    <svg class="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div id="kg-sub-modal-body"></div>
+        </div>
+    </div>
+
+    <!-- ================= 选择页面 (初始隐藏，在主程序中通过侧边栏导航触发) ================= -->
+    <div id="selection-screen" class="hidden w-full h-full flex flex-col items-center justify-center p-10 overflow-y-auto">
+        <h1 class="text-2xl font-light tracking-tight text-slate-800 mb-2">设定编辑</h1>
+        <p class="text-xs text-slate-500 mb-8">选择一个设定集或独立故事开始编辑</p>
+        <div id="select-list" class="grid grid-cols-2 gap-4 w-full max-w-3xl">
+            <!-- JS 动态装配 -->
+        </div>
+        <p id="select-empty" class="hidden text-sm text-slate-400 mt-8">暂无数据，请先在主程序中创建设定集或独立故事。</p>
+    </div>
+
+    <!-- ================= 左侧边栏 (Sidebar - 自由展收整体设计) ================= -->
+    <aside id="sidebar" class="w-44 flex flex-col h-full flex-shrink-0 modern-divider-r bg-white/30 backdrop-blur-md z-20">
+        
+        <!-- Logo 区域 (点击 LOGO 自由切换折叠/展开) -->
+        <div id="sidebar-logo-container" class="h-14 flex items-center px-4 border-b border-slate-200/60 shrink-0 cursor-pointer" onclick="toggleSidebar()">
+            <div class="flex items-center text-sm font-bold text-slate-800">
+                <svg class="w-4 h-4 text-blue-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path d="M12 2L2 12l10 10 10-10L12 2z"/>
+                </svg>
+                <span class="logo-text tracking-wider">LOGO</span>
+            </div>
+        </div>
+
+        <!-- 顶部导航 -->
+        <div class="px-2 py-3 shrink-0 space-y-1">
+            <div class="sidebar-tab active flex items-center" data-id="home" onclick="setInterfaceState('home'); setActiveSidebarTab(this)">
+                <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                <span class="sidebar-text">首页</span>
+            </div>
+            <div class="sidebar-tab flex items-center" data-id="collection-overview" onclick="setInterfaceState('collection-overview'); setActiveSidebarTab(this)">
+                <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                <span class="sidebar-text">设定集概览</span>
+            </div>
+            <div class="sidebar-tab flex items-center" data-id="chat" onclick="setInterfaceState('chat'); setActiveSidebarTab(this)">
+                <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+                <span class="sidebar-text">聊天</span>
+            </div>
+        </div>
+
+        <!-- 分割线 (上边界线) -->
+        <div class="h-px bg-slate-200/80 w-full shrink-0"></div>
+
+        <!-- 中间可滚动区域 (上下由实线直线限定，完美修复原有破碎HTML容器) -->
+        <div id="sidebar-scroll-container" class="flex-1 overflow-y-auto px-2 py-2 no-scrollbar space-y-4 relative">
+            <!-- 在此设定集下新建故事的快捷图标 (折叠且处于设定集内部时淡入显示) -->
+            <div id="sidebar-quick-create-container" class="absolute left-1/2 -translate-x-1/2 top-4 z-30">
+                <button onclick="handleSidebarQuickCreateStory(event)" class="modern-circle-lg cursor-pointer flex items-center justify-center" title="在此设定集下新建故事">
+                    <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- 设定集板块 -->
+            <div class="space-y-1">
+                <div class="px-3 text-[10px] font-bold text-slate-400 tracking-[0.15em] uppercase sidebar-group-title mb-1.5 select-none">
+                    设定集
+                </div>
+                <div id="sidebar-collections-container" class="space-y-1">
+                    <!-- JS 动态装配 -->
+                </div>
+            </div>
+            
+            <!-- 独立故事板块 -->
+            <div class="space-y-1">
+                <div class="px-3 text-[10px] font-bold text-slate-400 tracking-[0.15em] uppercase sidebar-group-title mb-1.5 select-none">
+                    独立故事
+                </div>
+                <div id="sidebar-independent-container" class="space-y-1">
+                    <!-- JS 动态装配 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 分割线 (下边界线) -->
+        <div class="h-px bg-slate-200/80 w-full shrink-0"></div>
+
+        <!-- 底部栏 (统一格式的侧边栏选项卡) -->
+        <div class="px-2 py-3 shrink-0 space-y-1">
+            <div class="sidebar-tab flex items-center" data-id="overview-bottom" onclick="setInterfaceState('collection-overview'); setActiveSidebarTab(this)">
+                <!-- 图 2 使用概览 SVG -->
+                <svg viewBox="0 0 100 100" class="w-3.5 h-3.5 shrink-0" stroke="currentColor" fill="none" stroke-width="12" stroke-linecap="round">
+                    <path d="M 38,22 A 28,28 0 0,0 38,78" />
+                    <path d="M 62,22 A 28,28 0 0,1 62,78" />
+                </svg>
+                <span class="sidebar-text">概览</span>
+            </div>
+            <div class="sidebar-tab flex items-center" data-id="export" onclick="setActiveSidebarTab(this)">
+                <!-- 图 3 导出 SVG -->
+                <svg viewBox="0 0 100 100" class="w-3.5 h-3.5 shrink-0" stroke="currentColor" fill="none" stroke-width="10" stroke-linejoin="round" stroke-linecap="round">
+                    <path d="M28,15 H62 L77,30 V85 H28 Z" />
+                    <path d="M62,15 V30 H77" />
+                    <path d="M52.5,45 V70 M38.5,56 L52.5,42 L66.5,56" />
+                </svg>
+                <span class="sidebar-text">导出</span>
+            </div>
+            <div class="sidebar-tab flex items-center" data-id="settings" onclick="setInterfaceState('settings'); setActiveSidebarTab(this)">
+                <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>
+                <span class="sidebar-text">设置</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ================= 主内容区 ================= -->
+    <main class="flex-1 h-full relative overflow-hidden flex flex-col items-center">
+        
+        <!-- 右上角圆形快捷操作 -->
+        <div class="absolute top-4 right-6 z-40">
+            <button onclick="toggleQuickActionsPopup(event)" class="w-6 h-6 rounded-full border border-slate-300 flex items-center justify-center bg-white/60 hover:bg-slate-100 active:scale-95 transition-all shadow-sm cursor-pointer relative" title="快捷操作">
+                <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <circle cx="12" cy="5" r="1.5"/>
+                    <circle cx="12" cy="12" r="1.5"/>
+                    <circle cx="12" cy="19" r="1.5"/>
+                </svg>
+                <!-- 悬浮微标指示符 -->
+                <span class="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                </span>
+            </button>
+        </div>
+
+        <!-- 
+             核心内容垂直容器：
+             - w-[60%]：占横向宽度的 60%
+             - items-start：所有内部构件在输入框左边缘齐步对齐
+        -->
+        <div id="main-content-wrapper" class="w-[60%] min-w-[360px] max-w-[580px] h-full flex flex-col items-start justify-between select-none">
+            
+            <!-- 【第一区域：引导语 (2/5 高度 = 40vh)】 -->
+            <section class="h-[40%] w-full flex flex-col justify-end pb-8">
+                <!-- 首页状态标题 -->
+                <h1 class="for-home text-3xl font-light tracking-tight text-slate-800 leading-snug text-left">
+                    想要个<br><span class="font-normal text-slate-900">什么故事？</span>
+                </h1>
+                
+                <!-- 创作状态标题 (在 [设定集名称] 内创作故事) -->
+                <h1 class="for-creating text-3xl font-light tracking-tight text-slate-800 leading-snug text-left">
+                    在 
+                    <span class="modern-pill inline-flex items-center gap-1.5 bg-white border border-slate-200 text-xs px-2.5 py-0.5 align-middle mx-1">
+                        <svg viewBox="0 0 100 100" class="w-3.5 h-3.5 text-blue-500 shrink-0" stroke="currentColor" fill="none" stroke-width="10" stroke-linecap="round">
+                            <rect x="18" y="22" width="26" height="14" rx="7" />
+                            <rect x="60" y="16" width="14" height="30" rx="7" />
+                            <rect x="18" y="52" width="14" height="30" rx="7" />
+                            <rect x="48" y="62" width="26" height="14" rx="7" />
+                        </svg>
+                        <span class="active-collection-name">设定集</span>
+                    </span> 
+                    内<br>
+                    <span class="font-normal text-slate-900">创作故事。想要什么？</span>
+                </h1>
+            </section>
+
+            <!-- 【第二区域：输入框 (3/10 高度 = 30vh)】 -->
+            <section class="h-[30%] w-full flex flex-col justify-center relative">
+                <!-- 悬浮胶囊标签（仅在首页状态下显示） -->
+                <!-- 创作模式选择器 -->
+                <div id="floating-label" class="absolute z-10" style="top: calc(50% - 130px / 2 - 12px); left: var(--outer-radius);">
+                    <!-- 抽屉（与触发标签左端对齐，展开后内容在触发标签右侧，层级z-1） -->
+                    <div id="creation-mode-drawer" class="creation-mode-drawer">
+                        <!-- 动态占位 spacer，其宽度在展开时通过 JS 自动设置为与 trigger button 的 offsetWidth 一致 -->
+                        <div id="creation-mode-drawer-spacer" class="shrink-0"></div>
+                        
+                        <div class="creation-mode-option active" data-mode="AUTO" title="AUTO">
+                            <span class="mode-label">AUTO</span>
+                        </div>
+                        <div class="h-3 w-px bg-slate-200/80 shrink-0"></div>
+                        <div class="creation-mode-option" data-mode="COLLECTION" title="设定集">
+                            <svg viewBox="0 0 100 100" class="w-3.5 h-3.5 shrink-0" stroke="currentColor" fill="none" stroke-width="10" stroke-linecap="round">
+                                <rect x="18" y="22" width="26" height="14" rx="7" /><rect x="60" y="16" width="14" height="30" rx="7" /><rect x="18" y="52" width="14" height="30" rx="7" /><rect x="48" y="62" width="26" height="14" rx="7" />
+                            </svg>
+                        </div>
+                        <div class="h-3 w-px bg-slate-200/80 shrink-0"></div>
+                        <div class="creation-mode-option" data-mode="INDEPENDENT" title="独立故事">
+                            <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <!-- 触发标签（在抽屉上层，完全遮挡抽屉左侧，层级z-2） -->
+                    <div id="creation-mode-trigger" class="modern-pill bg-white border border-slate-200 text-slate-600 font-semibold text-[11px] cursor-pointer select-none flex items-center gap-1.5 absolute left-0 top-0 shadow-sm" style="z-index: 2; height: 24px; border-radius: 12px;">
+                        <span>构建设定并创作</span>
+                        <svg id="creation-mode-arrow" class="w-2.5 h-2.5 text-slate-400 transition-transform duration-200 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                        </svg>
+                        <span id="creation-mode-label" class="text-blue-500 font-bold shrink-0">AUTO</span>
+                    </div>
+                </div>
+
+                <!-- 组件化主输入框容器 -->
+                <div id="home-input-container" class="w-full relative"></div>
+            </section>
+
+            <!-- 【第三区域：最近故事 / 便捷操作 (3/10 高度 = 30vh)】 -->
+            <!-- 首页状态下的故事展示 -->
+            <section class="for-home h-[30%] w-full flex flex-col justify-start pt-8">
+                <h3 class="text-[11px] font-bold tracking-wider uppercase text-slate-400 mb-3 text-left">
+                    Recent Stories
+                </h3>
+                
+                <!-- 故事列表滚动层 (More 已包含在滚动区域内部) -->
+                <div id="stories-list" class="space-y-2.5 ml-0.5 transition-all duration-300">
+                    <!-- JS动态加载 -->
+                </div>
+            </section>
+
+            <!-- 创作状态下的便捷操作展示 (高度增加、圆角矩形对齐的按钮) -->
+            <section class="for-creating h-[30%] w-full flex flex-col justify-start pt-8">
+                <h3 class="text-[11px] font-bold tracking-wider uppercase text-slate-400 mb-4 text-left">
+                    便捷操作
+                </h3>
+                
+                <div class="flex items-center gap-4 ml-0.5">
+                    <!-- 编辑设定集 (高度比原24px增高至36px) -->
+                    <div class="btn-tall flex items-center gap-2 cursor-pointer">
+                        <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                        </svg>
+                        编辑设定集
+                    </div>
+                    <!-- 设置独立设定 (高度比原24px增高至36px) -->
+                    <div onclick="handleEditIndependentStorySettingsFromHome()" class="btn-tall flex items-center gap-2 cursor-pointer">
+                        <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75"/>
+                        </svg>
+                        设置独立设定
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- ================= 聊天界面包装容器 (Chat View) ================= -->
+        <div id="chat-view-wrapper" class="hidden w-[60%] min-w-[360px] max-w-[580px] h-full flex flex-col items-start justify-between select-none">
+            
+            <!-- 【第一区域：引导语 (与角色对话状态)】 -->
+            <section class="h-[40%] shrink-0 w-full flex flex-col justify-end pb-8">
+                <h1 id="chat-view-title" class="text-3xl font-light tracking-tight text-slate-800 leading-snug text-left">
+                    与 
+                    <span class="modern-pill inline-flex items-center gap-1 bg-white border border-slate-200 text-xs px-2.5 py-0.5 align-middle mx-1 select-none hover:bg-slate-50 transition-colors cursor-pointer" onclick="openChatAtPopup(event)">
+                        <span class="text-blue-500 font-bold shrink-0">@</span>
+                        <span class="font-normal text-slate-800">角色</span>
+                    </span><br>
+                    聊些什么？
+                </h1>
+            </section>
+            <!-- 【第二区域：聊天输入框】 -->
+            <section class="h-[30%] shrink-0 w-full flex flex-col justify-center relative">
+                <div id="chat-input-box-wrapper" class="w-full relative"></div>
+            </section>
+
+            <!-- 【第三区域：About 角色详情 / 群组详情】 -->
+            <section class="flex-1 min-h-0 w-full flex flex-col justify-start pt-8 overflow-hidden mb-6">
+                <h3 id="chat-about-title" class="text-[11px] font-bold tracking-wider uppercase text-slate-400 mb-3 text-left">
+                    About @角色
+                </h3>
+                <div id="chat-about-content" class="w-full flex-1 overflow-hidden">
+                    <!-- JS 动态渲染 -->
+                </div>
+            </section>
+
+        </div>
+
+        <!-- ================= 设定集概览界面包装容器 (Collection Overview) ================= -->
+        <div id="collection-overview-wrapper" class="hidden w-full h-full pt-4 px-6 pb-6 flex flex-col overflow-hidden">
+            <!-- ================= TOP HEADER ================= -->
+            <header class="flex items-center gap-4 shrink-0 pr-12 mb-4">
+                <div class="modern-pill border-slate-300 font-bold text-slate-800 text-xs px-3.5 flex items-center gap-2 shadow-sm bg-white/80 shrink-0 select-none">
+                    <svg class="w-3.5 h-3.5 text-blue-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                    <span class="tracking-wide">设定集与独立故事总览</span>
+                </div>
+                
+                <div class="text-xs text-slate-500 font-medium italic border-l-2 border-slate-300 pl-3 py-0.5 truncate max-w-xl select-none">
+                    “ 承载世界观底稿的设定集，与轻量灵活独立创作的故事。 ”
+                </div>
+            </header>
+
+            <!-- ================= TWO COLUMNS LAYOUT ================= -->
+            <div class="flex-1 grid grid-cols-2 gap-10 mt-2 overflow-hidden relative">
+                <!-- Left Column: Setting Collections -->
+                <section class="flex flex-col h-full overflow-hidden pr-5">
+                    <div class="flex items-center justify-between mb-4 shrink-0 px-1 select-none">
+                        <h2 class="text-base font-extrabold text-slate-800 flex items-center gap-0.5">
+                            <span class="text-blue-500 font-serif text-lg font-bold">「</span>设定集<span class="text-blue-500 font-serif text-lg font-bold">」</span>
+                        </h2>
+                        <span id="overview-collections-count" class="bg-blue-50 text-blue-600 text-[10px] px-2 py-0.5 rounded-full font-bold">3</span>
+                    </div>
+                    
+                    <!-- Scrollable List of Setting Collections -->
+                    <div id="overview-collections-list" class="flex-1 overflow-y-auto no-scrollbar space-y-4 pb-4 pr-1">
+                        <!-- Dynamically loaded setting collection cards -->
+                    </div>
+                    
+                    <!-- Bottom action split by solid line to match the sketch exactly -->
+                    <div class="shrink-0 pt-4 mt-2 border-t border-slate-200/80">
+                        <button onclick="handleCreateNewCollection()" class="w-full h-11 border border-dashed border-blue-200 hover:border-blue-400 bg-blue-50/30 hover:bg-blue-50/70 hover:text-blue-600 rounded-xl text-[11.5px] font-bold text-slate-600 transition-all flex items-center justify-center gap-2 active:scale-[0.98] shadow-sm">
+                            <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                            <span>新建设定集</span>
+                        </button>
+                    </div>
+                </section>
+                
+                <!-- Center vertical splitter: hand-drawn double-line style, elegantly formatted! -->
+                <div class="absolute top-4 bottom-4 left-1/2 -translate-x-1/2 w-1 border-l border-r border-slate-200/80 pointer-events-none"></div>
+                
+                <!-- Right Column: Independent Stories -->
+                <section class="flex flex-col h-full overflow-hidden pl-5">
+                    <div class="flex items-center justify-between mb-4 shrink-0 px-1 select-none">
+                        <h2 class="text-base font-extrabold text-slate-800 flex items-center gap-0.5">
+                            <span class="text-indigo-500 font-serif text-lg font-bold">「</span>独立故事<span class="text-indigo-500 font-serif text-lg font-bold">」</span>
+                        </h2>
+                        <span id="overview-stories-count" class="bg-indigo-50 text-indigo-600 text-[10px] px-2 py-0.5 rounded-full font-bold">5</span>
+                    </div>
+                    
+                    <!-- Scrollable List of Independent Stories (holds the +新建独立故事 card button inline) -->
+                    <div id="overview-stories-list" class="flex-1 overflow-y-auto no-scrollbar space-y-4 pb-4 pr-1">
+                        <!-- Dynamically loaded independent story cards and the +新建独立故事 card at the end -->
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <!-- ================= 设定集查看界面包装容器 (Collection View) ================= -->
+        <div id="collection-view-wrapper" class="hidden w-full h-full pt-4 px-6 pb-6 flex flex-col overflow-hidden">
+            
+            <!-- ================= TOP HEADER (设定集基本说明区域) ================= -->
+            <header class="flex items-center gap-4 shrink-0 pr-12">
+                <div class="modern-pill border-slate-300 font-bold text-slate-800 text-xs px-3.5 flex items-center gap-2 shadow-sm bg-white/80 shrink-0">
+                    <svg viewBox="0 0 100 100" class="w-4 h-4 text-blue-500 shrink-0" stroke="currentColor" fill="none" stroke-width="10" stroke-linecap="round">
+                        <rect x="18" y="22" width="26" height="14" rx="7" />
+                        <rect x="60" y="16" width="14" height="30" rx="7" />
+                        <rect x="18" y="52" width="14" height="30" rx="7" />
+                        <rect x="48" y="62" width="26" height="14" rx="7" />
+                    </svg>
+                    <span id="collection-title" class="tracking-wide">设定集</span>
+                </div>
+                
+                <div class="text-xs text-slate-500 font-medium italic border-l-2 border-slate-300 pl-3 py-0.5 truncate max-w-xl">
+                    “ <span id="collection-desc">设定集描述</span> ”
+                </div>
+            </header>
+
+            <!-- ================= BOTTOM CONTENT (三栏主要工作版图) ================= -->
+            <div class="flex-1 grid grid-cols-12 gap-6 mt-6 overflow-hidden">
+                
+                <!-- 1. LEFT PANEL: STORIES COLUMN (故事列表) -->
+                <section class="col-span-3 flex flex-col h-full overflow-hidden">
+                    <div class="flex items-center justify-between mb-3 shrink-0 px-1">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Stories</span>
+                            <span id="stories-count" class="bg-slate-100 text-slate-500 text-[9px] px-1.5 py-0.5 rounded-full font-bold">3</span>
+                        </div>
+                    </div>
+                    
+                    <div id="stories-wrapper" class="flex-1 flex flex-col overflow-hidden">
+                        <!-- JS 动态装配 -->
+                    </div>
+                </section>
+
+                <!-- 2. CENTER PANEL: WORLD VIEW KNOWLEDGE GRAPH (世界观知识图谱) -->
+                <section class="col-span-6 flex flex-col h-full overflow-hidden">
+                    <div class="flex items-center justify-between mb-3 shrink-0 px-1">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Collection View</span>
+                            <div class="flex bg-slate-200/60 rounded-full p-0.5" id="view-toggle">
+                                <button id="btn-view-graph" class="text-[9px] font-bold px-3 py-0.5 rounded-full bg-white text-slate-800 shadow-sm transition-all" onclick="setViewMode('graph')">Graph</button>
+                                <button id="btn-view-list" class="text-[9px] font-bold px-3 py-0.5 rounded-full text-slate-500 hover:text-slate-700 transition-all" onclick="setViewMode('list')">List</button>
+                            </div>
+                        </div>
+                        <span class="text-[9px] font-semibold text-slate-400 mr-2 flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>力导向引擎激活
+                        </span>
+                    </div>
+
+                    <div class="flex-1 relative overflow-hidden modern-box-outer p-0 flex flex-col justify-between" id="center-box">
+                        
+                        <!-- Graph 视图 (D3 SVG) -->
+                        <div id="graph-view" class="w-full h-full relative fade-in">
+                            <svg id="kg-svg" class="w-full h-full cursor-grab active:cursor-grabbing"></svg>
+                            
+                            <!-- 节点点击详情卡片 -->
+                            <div id="node-detail-panel" class="hidden absolute top-4 left-4 z-10 w-44 bg-white/85 backdrop-blur-md rounded-2xl border border-slate-200/80 p-3 shadow-xl flex flex-col gap-2 transition-all duration-300">
+                                <div class="flex justify-between items-start">
+                                    <span id="node-detail-type" class="text-[8px] font-bold px-1.5 py-0.5 rounded text-white bg-blue-500 uppercase tracking-wider">世界观</span>
+                                    <button onclick="closeDetailPanel()" class="text-slate-400 hover:text-slate-600 transition-colors">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                                    </button>
+                                </div>
+                                <h4 id="node-detail-name" class="text-[11px] font-bold text-slate-800 leading-tight">节点名称</h4>
+                                <p id="node-detail-desc" class="text-[9px] text-slate-500 leading-relaxed max-h-20 overflow-y-auto pr-1">节点描述</p>
+                                <div class="h-px bg-slate-100 my-0.5"></div>
+                                <button onclick="editCurrentNode()" class="w-full text-center text-[9px] font-bold text-blue-500 hover:bg-blue-50/50 py-1 rounded-lg border border-blue-200/60 transition-colors shrink-0">
+                                    编修该设定
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- List 视图 -->
+                        <div id="list-view" class="w-full h-full hidden overflow-y-auto no-scrollbar p-6 space-y-5 fade-in">
+                            <div class="list-section" id="list-section-worldview">
+                                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-teal-400"></span>世界观 (World View)
+                                </h4>
+                                <div class="space-y-2" id="list-worldview-items"></div>
+                            </div>
+                            <div class="list-section" id="list-section-scenes">
+                                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-orange-400"></span>场景 (Scenes)
+                                </h4>
+                                <div class="space-y-2" id="list-scene-items"></div>
+                            </div>
+                            <div class="list-section" id="list-section-characters">
+                                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>角色 (Characters)
+                                </h4>
+                                <div class="space-y-2" id="list-character-items"></div>
+                            </div>
+                            <div class="list-section" id="list-section-props">
+                                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>道具 (Props)
+                                </h4>
+                                <div class="space-y-2" id="list-prop-items"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 中央下方操盘按钮群组 -->
+                    <footer class="mt-4 shrink-0 grid grid-cols-12 gap-3">
+                        <!-- 左侧：双倍高度“编辑设定” -->
+                        <button onclick="handleEditSettings()" class="col-span-4 h-[78px] rounded-2xl border border-slate-300 hover:border-slate-400 bg-white hover:bg-slate-50 shadow-sm flex flex-col justify-center items-center gap-1.5 transition-all group active:scale-[0.98]">
+                            <div class="w-6 h-6 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center transition-colors group-hover:bg-blue-100">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg>
+                            </div>
+                            <span class="text-xs font-bold text-slate-700">编辑设定</span>
+                        </button>
+                        
+                        <!-- 右侧：2x2跳转按钮 -->
+                        <div class="col-span-8 grid grid-cols-2 gap-2">
+                            <button onclick="jumpToCategory('worldview')" class="h-[36px] rounded-xl border border-slate-200/80 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 transition-colors flex items-center justify-center gap-1.5 text-xs font-bold shadow-sm active:scale-[0.97]">
+                                <span class="w-1.5 h-1.5 rounded-full bg-teal-400"></span>
+                                <span>转到世界观</span>
+                            </button>
+                            <button onclick="jumpToCategory('scenes')" class="h-[36px] rounded-xl border border-slate-200/80 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 transition-colors flex items-center justify-center gap-1.5 text-xs font-bold shadow-sm active:scale-[0.97]">
+                                <span class="w-1.5 h-1.5 rounded-full bg-orange-400"></span>
+                                <span>转到场景</span>
+                            </button>
+                            <button onclick="jumpToCategory('characters')" class="h-[36px] rounded-xl border border-slate-200/80 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 transition-colors flex items-center justify-center gap-1.5 text-xs font-bold shadow-sm active:scale-[0.97]">
+                                <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                                <span>转到角色</span>
+                            </button>
+                            <button onclick="jumpToCategory('props')" class="h-[36px] rounded-xl border border-slate-200/80 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 transition-colors flex items-center justify-center gap-1.5 text-xs font-bold shadow-sm active:scale-[0.97]">
+                                <span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+                                <span>转到道具</span>
+                            </button>
+                        </div>
+                    </footer>
+                </section>
+
+                <!-- 3. RIGHT PANEL: CHAT COLUMN (聊天列表) -->
+                <section class="col-span-3 flex flex-col h-full overflow-hidden">
+                    <div class="flex items-center justify-between mb-3 shrink-0 px-1">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Chat</span>
+                            <span id="chats-count" class="bg-slate-100 text-slate-500 text-[9px] px-1.5 py-0.5 rounded-full font-bold">3</span>
+                        </div>
+                    </div>
+
+                    <div id="chats-wrapper" class="flex-1 flex flex-col overflow-hidden">
+                        <!-- JS 动态装配 -->
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <!-- ================= 设定集编辑界面包装容器 (Collection Edit) ================= -->
+        <div id="collection-edit-wrapper" class="hidden w-full h-full flex flex-col overflow-hidden">
+            
+            <!-- TOP HEADER (编辑器全局顶部栏) -->
+            <header class="h-14 w-full flex items-center px-6 shrink-0 border-b border-slate-200/60 bg-white/30 backdrop-blur-md z-10">
+                <div class="flex items-center gap-3">
+                    <!-- 返回设定集查看页面 / 返回故事页面 -->
+                    <button id="edit-exit-btn" onclick="exitCollectionEdit()" class="w-6 h-6 rounded-full border border-slate-300 flex items-center justify-center bg-white/60 hover:bg-slate-100 transition-colors" title="返回设定集查看">
+                        <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                    </button>
+                    <!-- 设定集/故事名称胶囊 -->
+                    <div class="modern-pill border-slate-300 font-bold text-slate-800 text-xs px-3.5 flex items-center gap-2 shadow-sm bg-white/80 shrink-0">
+                        <!-- 设定集图标 -->
+                        <svg id="edit-collection-icon-blocks" viewBox="0 0 100 100" class="w-4 h-4 text-blue-500 shrink-0" stroke="currentColor" fill="none" stroke-width="10" stroke-linecap="round">
+                            <rect x="18" y="22" width="26" height="14" rx="7" />
+                            <rect x="60" y="16" width="14" height="30" rx="7" />
+                            <rect x="18" y="52" width="14" height="30" rx="7" />
+                            <rect x="48" y="62" width="26" height="14" rx="7" />
+                        </svg>
+                        <!-- 独立故事图标 (书本，使用已存在的 book SVG) -->
+                        <svg id="edit-collection-icon-book" class="w-3.5 h-3.5 text-indigo-500 shrink-0 hidden" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                        </svg>
+                        <span id="edit-collection-title" class="tracking-wide">设定集</span>
+                    </div>
+                    <!-- 重命名设定集按钮 (仅图标，无文本) -->
+                    <button id="edit-rename-btn" onclick="renameCollection()" class="w-6 h-6 rounded-full border border-slate-300 flex items-center justify-center bg-white/60 hover:bg-slate-100 active:scale-95 transition-all shadow-sm cursor-pointer ml-1" title="重命名设定集">
+                        <svg class="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/>
+                        </svg>
+                    </button>
+                </div>
+            </header>
+
+            <!-- 下方双栏主工作区 -->
+            <div class="flex-1 w-full flex overflow-hidden">
+                
+                <!-- ========== 左侧：设定卡片浏览/编辑区 ========== -->
+                <div class="flex-1 flex flex-col h-full overflow-hidden p-6">
+                    
+                    <!-- 分类选项卡栏 -->
+                    <div class="flex items-center gap-1 shrink-0 mb-4">
+                        <div id="edit-category-tabs" class="flex items-center gap-1">
+                            <div class="edit-category-tab active" data-category="worldview" onclick="switchEditCategory('worldview', this)">世界观</div>
+                            <div class="edit-category-tab" data-category="character" onclick="switchEditCategory('character', this)">角色</div>
+                            <div class="edit-category-tab" data-category="scene" onclick="switchEditCategory('scene', this)">场景</div>
+                            <div class="edit-category-tab" data-category="prop" onclick="switchEditCategory('prop', this)">道具</div>
+                        </div>
+                    </div>
+
+                    <!-- 搜索栏 + 视图切换 -->
+                    <div class="flex items-center gap-3 shrink-0 mb-4">
+                        <!-- 搜索框 -->
+                        <div class="flex-1 flex items-center px-3 gap-2 bg-white border border-slate-200 shadow-sm" style="height: var(--global-h); border-radius: var(--global-radius);">
+                            <svg class="w-3 h-3 text-slate-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                            <input type="text" id="edit-search-input" placeholder="搜索设定条目..." class="w-full h-full bg-transparent border-0 outline-none text-[10px] font-medium text-slate-600 placeholder-slate-300" oninput="filterEditCards()" />
+                        </div>
+                        <!-- 列表/图谱视图切换 -->
+                        <div class="flex bg-slate-200/60 rounded-full p-0.5 shrink-0">
+                            <button id="edit-view-list-btn" class="text-[9px] font-bold px-3 py-0.5 rounded-full bg-white text-slate-800 shadow-sm transition-all" onclick="setEditViewMode('list')">列表</button>
+                            <button id="edit-view-graph-btn" class="text-[9px] font-bold px-3 py-0.5 rounded-full text-slate-500 hover:text-slate-700 transition-all" onclick="setEditViewMode('graph')">图谱</button>
+                        </div>
+                    </div>
+
+                    <!-- 设定卡片列表/网格区域 (可滚动) -->
+                    <div id="edit-cards-container" class="flex-1 overflow-y-auto no-scrollbar">
+                        <div id="edit-cards-area"></div>
+                    </div>
+                    <!-- 设定集图谱区域 (D3 SVG, 占满) -->
+                    <div id="edit-graph-area" class="hidden flex-1 relative overflow-hidden bg-white/65 backdrop-blur-md rounded-2xl border border-slate-200/80">
+                        <svg id="edit-kg-svg" class="w-full h-full cursor-grab active:cursor-grabbing"></svg>
+                    </div>
+
+                    <!-- 底部：新增设定按钮 -->
+                    <div class="shrink-0 mt-4">
+                        <button onclick="addNewSettingItem()" class="w-full h-9 border border-dashed border-slate-300 hover:border-blue-300 bg-white/50 hover:bg-blue-50/50 hover:text-blue-600 rounded-xl text-[10px] font-bold text-slate-500 transition-all flex items-center justify-center gap-1.5 active:scale-[0.98]">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                            <span>新增设定</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ========== 右侧：AI对话式设定编辑栏 ========== -->
+                <div class="w-80 flex flex-col h-full bg-white/30 backdrop-blur-md border-l border-slate-200/80 overflow-hidden shrink-0">
+                    <div class="w-80 h-full flex flex-col overflow-hidden shrink-0">
+                        
+                        <!-- 栏标题 -->
+                        <div class="flex items-center justify-between px-4 pt-4 pb-2 shrink-0">
+                            <div class="flex items-center gap-2">
+                                <span class="text-[11px] font-bold text-slate-700 tracking-wider">设定编辑</span>
+                                <svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/>
+                                </svg>
+                            </div>
+                            <button onclick="clearEditChat()" class="text-[9px] font-bold text-blue-500 hover:text-blue-600 bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded transition-colors" title="新建会话">
+                                New
+                            </button>
+                        </div>
+
+                        <!-- AI对话消息区 (可滚动) -->
+                        <div id="edit-chat-list" class="flex-1 overflow-y-auto no-scrollbar px-4 py-3 space-y-3">
+                            <!-- 初始AI欢迎消息 -->
+                            <div class="flex items-start gap-2 w-full">
+                                <div class="w-5 h-5 rounded-full bg-blue-50 text-blue-500 font-bold text-[9px] flex items-center justify-center shrink-0 border border-blue-200 mt-0.5 shadow-sm select-none">A</div>
+                                <div class="flex flex-col items-start max-w-[85%]">
+                                    <div class="p-2.5 bg-white border border-slate-200 text-[10px] font-medium text-slate-600 leading-relaxed text-left shadow-sm" style="border-radius: var(--global-radius);">
+                                        你好！我是设定编辑助手。你可以告诉我你想创建或修改的设定内容，比如：<br><br>
+                                        • <strong class="text-blue-500">帮我设计一个世界</strong><br>
+                                        • <strong class="text-blue-500">新增一个角色</strong><br>
+                                        • <strong class="text-blue-500">修改某个设定集节点</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 底部输入框 -->
+                        <div class="px-3 pb-3 pt-1 shrink-0">
+                            <div id="edit-chat-input-container" class="w-full relative"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= 对话创作界面包装容器 (Dialogue View) ================= -->
+        <div id="dialogue-view-wrapper" class="hidden w-full h-full flex flex-col overflow-hidden">
+            
+            <!-- TOP HEADER (贯穿全宽的全局顶部栏) -->
+            <header class="h-14 w-full flex items-center justify-between px-6 shrink-0 border-b border-slate-200/60 bg-white/30 backdrop-blur-md z-10">
+                <div class="flex items-center gap-2">
+                    <!-- 返回主页的小返回箭头 -->
+                    <button onclick="setInterfaceState('home')" class="w-6 h-6 rounded-full border border-slate-300 flex items-center justify-center bg-white/60 hover:bg-slate-100 transition-colors" title="返回首页">
+                        <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                    </button>
+                    <!-- 挂载的设定集/独立故事胶囊 (可点击进行设定编辑) -->
+                    <div id="dialogue-collection-pill" onclick="handleDialogueCollectionPillClick()" class="modern-pill border-slate-200 text-slate-500 text-[10px] font-semibold flex items-center gap-1 shadow-sm bg-white/80 shrink-0 cursor-pointer hover:bg-slate-50 transition-all">
+                        <!-- 设定集图标 -->
+                        <svg id="dialogue-collection-icon-blocks" viewBox="0 0 100 100" class="w-3 h-3 text-slate-400 shrink-0" stroke="currentColor" fill="none" stroke-width="10" stroke-linecap="round">
+                            <rect x="18" y="22" width="26" height="14" rx="7" />
+                            <rect x="60" y="16" width="14" height="30" rx="7" />
+                            <rect x="18" y="52" width="14" height="30" rx="7" />
+                            <rect x="48" y="62" width="26" height="14" rx="7" />
+                        </svg>
+                        <!-- 独立故事图标 -->
+                        <svg id="dialogue-collection-icon-book" class="w-3 h-3 text-indigo-400 shrink-0 hidden" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                        </svg>
+                        <span id="dialogue-collection-name">设定集</span>
+                    </div>
+                </div>
+
+                <!-- 居中：故事标题 (类似手绘的 [故事 1] 圆角矩形胶囊) -->
+                <div class="modern-pill border-slate-300 font-bold text-slate-800 text-xs px-4 flex items-center gap-1.5 shadow-sm bg-white/80 shrink-0">
+                    <span id="dialogue-story-title" class="tracking-wide">故事 1</span>
+                </div>
+
+                <!-- 右侧快捷操作圆形按钮 -->
+                <button onclick="toggleQuickActionsPopup(event)" class="w-6 h-6 rounded-full border border-slate-300 flex items-center justify-center bg-white/60 hover:bg-slate-100 active:scale-95 transition-all shadow-sm cursor-pointer relative" title="快捷操作">
+                    <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <circle cx="12" cy="5" r="1.5"/>
+                        <circle cx="12" cy="12" r="1.5"/>
+                        <circle cx="12" cy="19" r="1.5"/>
+                    </svg>
+                    <!-- 悬浮微标指示符 -->
+                    <span class="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                    </span>
+                </button>
+            </header>
+
+            <!-- 下方三栏主要工作版图 (贯穿全高，上方是贯穿全宽的顶部栏，侧边栏最上方就是顶部栏) -->
+            <div class="flex-1 w-full flex overflow-hidden">
+                
+                <!-- 1. 左/中侧对话创作主板 (Flex-1) -->
+                <div class="flex-1 flex flex-col h-full overflow-hidden relative">
+
+                <!-- 对话滚动区域 -->
+                <div id="dialogue-chat-area" class="flex-1 overflow-y-auto px-10 py-6 space-y-6 no-scrollbar bg-transparent">
+                    <!-- 动态装配用户和AI消息 -->
+                </div>
+
+                <!-- 底部输入框区域 -->
+                <footer class="p-6 shrink-0 w-full max-w-[720px] mx-auto relative">
+                    <div id="dialogue-input-container" class="w-full relative"></div>
+                </footer>
+            </div>
+
+            <!-- 2. 右侧设定集侧边栏 -->
+            <div id="dialogue-right-sidebar" class="w-72 flex flex-col h-full bg-white/30 backdrop-blur-md border-l border-slate-200/80 transition-all duration-300 overflow-hidden shrink-0">
+                <div class="w-72 h-full flex flex-col overflow-hidden shrink-0" id="sidebar-content">
+                    
+                    <!-- ========== 上半区：设定条目浏览 ========== -->
+                    <div class="flex-1 flex flex-col overflow-hidden min-h-0">
+                        
+                        <!-- 切页头 < 事件 > -->
+                        <div class="flex items-center justify-center gap-3 shrink-0 px-4 pt-4 pb-2">
+                            <button onclick="switchSidebarCategory(-1)" class="modern-circle cursor-pointer active:scale-95 hover:bg-slate-100" style="width:20px;height:20px;border-radius:10px;" title="上一分类">
+                                <svg class="w-2.5 h-2.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                            </button>
+                            <span id="sidebar-category-label" class="text-[11px] font-bold text-slate-700 tracking-wider select-none min-w-[48px] text-center">事件</span>
+                            <button onclick="switchSidebarCategory(1)" class="modern-circle cursor-pointer active:scale-95 hover:bg-slate-100" style="width:20px;height:20px;border-radius:10px;" title="下一分类">
+                                <svg class="w-2.5 h-2.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                            </button>
+                        </div>
+
+                        <!-- 搜索框 (设计Token: 高度24px, 圆角12px) -->
+                        <div class="px-4 pb-2 shrink-0">
+                            <div class="w-full flex items-center px-2.5 gap-2 bg-white border border-slate-200 shadow-sm" style="height: var(--global-h); border-radius: var(--global-radius);">
+                                <svg class="w-3 h-3 text-slate-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                                <input type="text" id="sidebar-search" placeholder="搜索..." oninput="filterSidebarItems()" class="w-full h-full bg-transparent border-0 outline-none text-[10px] font-medium text-slate-600 placeholder-slate-300" />
+                            </div>
+                        </div>
+
+                        <!-- 条目列表 (可滚动) -->
+                        <div id="sidebar-item-list" class="flex-1 overflow-y-auto no-scrollbar px-4 space-y-2 pb-2">
+                            <!-- JS 动态装配当前分类的条目 -->
+                        </div>
+                    </div>
+
+                    <!-- ========== 固定实线分割 ========== -->
+                    <div class="w-full shrink-0 px-4">
+                        <div class="w-full h-px bg-slate-300"></div>
+                    </div>
+
+                    <!-- ========== 下半区：AI对话式设定编辑 ========== -->
+                    <div class="flex-1 flex flex-col overflow-hidden min-h-0">
+                        
+                        <!-- 对话消息区 (可滚动) -->
+                        <div id="sidebar-chat-list" class="flex-1 overflow-y-auto no-scrollbar px-4 py-3 space-y-3">
+                            <!-- 示例用户消息 -->
+                            <div class="flex items-start gap-2 justify-end w-full">
+                                <div class="flex flex-col items-end max-w-[85%]">
+                                    <div class="p-2.5 bg-slate-100/70 border border-slate-200 text-[10px] font-medium text-slate-600 leading-relaxed text-left shadow-sm" style="border-radius: var(--global-radius);">
+                                        创建一个新角色。
+                                    </div>
+                                </div>
+                                <div class="w-5 h-5 rounded-full bg-slate-200 text-slate-600 font-bold text-[9px] flex items-center justify-center shrink-0 border border-slate-300 mt-0.5 shadow-sm select-none">U</div>
+                            </div>
+                            <!-- 示例AI消息 -->
+                            <div class="flex items-start gap-2 w-full">
+                                <div class="w-5 h-5 rounded-full bg-blue-50 text-blue-500 font-bold text-[9px] flex items-center justify-center shrink-0 border border-blue-200 mt-0.5 shadow-sm select-none">A</div>
+                                <div class="flex flex-col items-start max-w-[85%]">
+                                    <div class="p-2.5 bg-white border border-slate-200 text-[10px] font-medium text-slate-600 leading-relaxed text-left shadow-sm" style="border-radius: var(--global-radius);">
+                                        操作已完成。
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 底部输入框 (等比例缩放紧凑版) -->
+                        <div class="px-3 pb-3 pt-1 shrink-0">
+                            <div id="sidebar-input-container" class="w-full relative"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. 独立节点条列（含≡折叠按钮），始终可见 -->
+            <div id="node-bar-column" class="w-8 h-full shrink-0 flex flex-col items-center bg-white/10 select-none relative">
+                <!-- ≡ 折叠/展开按钮 (位于节点条上方) -->
+                <button onclick="toggleRightSidebar()" id="sidebar-toggle-btn" class="w-6 h-6 flex items-center justify-center rounded cursor-pointer hover:bg-slate-100 transition-colors mt-2 mb-3 shrink-0" title="展开/折叠侧边栏" style="border-radius: var(--global-radius);">
+                    <svg class="w-3.5 h-3.5 text-slate-400 hover:text-slate-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                </button>
+
+                <!-- 节点条本体 -->
+                <div id="node-bar-track" class="flex-1 flex flex-col items-center w-full px-0 py-1 gap-0 overflow-hidden relative">
+                    <!-- JS 动态生成节点圆点，节点间距正比于AI回复长度 -->
+                </div>
+            </div>
+            
+            </div> <!-- End of dialogue work area row -->
+        </div> <!-- End of dialogue-view-wrapper -->
+
+            <!-- @ 引用设定悬浮弹窗 (同Model选择弹窗样式) -->
+            <div id="setting-ref-popup" class="hidden fixed z-50 w-56 bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/80 p-3 shadow-xl flex flex-col gap-1.5 text-left">
+                <div class="flex items-center gap-2 px-1">
+                    <svg class="w-3 h-3 text-slate-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                    <input type="text" id="setting-ref-search" placeholder="查找设定..." class="w-full bg-transparent border-0 outline-none text-[11px] font-medium text-slate-600 placeholder-slate-300" oninput="filterSettingRefItems()" />
+                </div>
+                <div class="h-px bg-slate-200/60"></div>
+                <div id="setting-ref-list" class="max-h-40 overflow-y-auto no-scrollbar space-y-0.5">
+                    <!-- JS 动态装配可引用的设定条目 -->
+                </div>
+            </div>
+
+            <!-- @ 引用角色群聊悬浮弹窗 -->
+            <div id="chat-at-popup" class="hidden fixed z-50 w-56 bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/80 p-3 shadow-xl flex flex-col gap-1.5 text-left animate-fade-in">
+                <div class="flex items-center gap-2 px-1">
+                    <svg class="w-3 h-3 text-slate-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                    <input type="text" id="chat-at-search" placeholder="查找角色..." class="w-full bg-transparent border-0 outline-none text-[11px] font-medium text-slate-600 placeholder-slate-300" oninput="filterChatAtItems()" />
+                </div>
+                <div class="h-px bg-slate-200/60 my-0.5"></div>
+                <div id="chat-at-list" class="max-h-40 overflow-y-auto no-scrollbar space-y-0.5">
+                    <!-- JS 动态装配角色列表 -->
+                </div>
+            </div>
+
+            <!-- Deduction Level Floating Popover Panel -->
+            <div id="deduction-level-popup" class="hidden fixed z-[60] w-48 bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/80 p-2 shadow-xl flex flex-col gap-1 text-left">
+                <!-- Fast -->
+                <div class="dl-popup-option flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer" data-level="Fast">
+                    <div class="flex items-center gap-1.5">
+                        <svg class="dl-check-icon w-3 h-3 text-blue-500 shrink-0 hidden" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        <div class="flex flex-col">
+                            <span class="text-[10px] font-bold text-slate-800">Fast</span>
+                            <span class="text-[8.5px] text-slate-400 font-medium mt-0.5">快速推演</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- Standard -->
+                <div class="dl-popup-option flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer" data-level="Standard">
+                    <div class="flex items-center gap-1.5">
+                        <svg class="dl-check-icon w-3 h-3 text-blue-500 shrink-0 hidden" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        <div class="flex flex-col">
+                            <span class="text-[10px] font-bold text-slate-800">Standard</span>
+                            <span class="text-[8.5px] text-slate-400 font-medium mt-0.5">常规流程</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- Extended -->
+                <div class="dl-popup-option flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer" data-level="Extended">
+                    <div class="flex items-center gap-1.5">
+                        <svg class="dl-check-icon w-3 h-3 text-blue-500 shrink-0 hidden" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        <div class="flex flex-col">
+                            <span class="text-[10px] font-bold text-slate-800">Extended</span>
+                            <span class="text-[8.5px] text-slate-400 font-medium mt-0.5">长链验证</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 挂载设定集悬浮弹窗 (同Model及引用设定弹窗样式，基于边界判定最大侧空间智能展开) -->
+            <div id="collection-mount-popup" class="hidden fixed z-50 w-56 bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/80 p-3 shadow-xl flex flex-col gap-1.5 text-left">
+                <div class="px-2 py-1 text-[9px] font-bold text-slate-400 uppercase tracking-wider select-none">选择挂载设定集</div>
+                <div class="h-px bg-slate-200/60 my-0.5"></div>
+                <div id="collection-mount-list" class="space-y-0.5 max-h-40 overflow-y-auto no-scrollbar">
+                    <!-- JS 动态装配设定集条目 -->
+                </div>
+            </div>
+
+            <!-- 快捷操作悬浮面板 (Sleek Glassmorphic Design) -->
+            <div id="quick-actions-popup" class="hidden fixed z-50 w-60 bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/80 p-3.5 shadow-xl flex flex-col gap-3 text-left">
+                <!-- User Profile & DB Section -->
+                <div id="qa-user-section" class="flex flex-col gap-1.5 p-2 bg-slate-50/60 border border-slate-101 rounded-xl">
+                    <div class="flex items-center gap-2">
+                        <div class="w-7 h-7 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center text-[11px] font-bold text-slate-600 select-none shadow-sm" id="qa-avatar">
+                            G
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-[10px] font-bold text-slate-700" id="qa-username">游客账户 (Guest)</span>
+                            <span class="text-[8px] text-slate-400 font-medium" id="qa-db-status">数据库未导入</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="h-px bg-slate-200/60 my-0.5"></div>
+
+                <!-- 1. 快捷模型选择 (Quick Model Select) — 动态渲染自定义模型 -->
+                <div class="flex flex-col gap-1">
+                    <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider px-1">快捷模型设置</span>
+                    <div id="qa-model-list" class="flex flex-col gap-0.5"></div>
+                </div>
+
+                <div class="h-px bg-slate-200/60 my-0.5"></div>
+
+                <!-- 2. 数据库导入与导出 (Import & Export Actions) -->
+                <div class="flex flex-col gap-1.5">
+                    <!-- 导入数据库按钮 -->
+                    <button id="qa-import-btn" onclick="handleQAImport()" class="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100/80 active:scale-[0.98] border border-blue-200/60 text-[10px] font-bold text-blue-600 transition-all" style="border-radius: var(--global-radius);">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>导入数据库 (登录)</span>
+                    </button>
+
+                    <!-- 导出数据库按钮 (仅在已登录时启用) -->
+                    <button id="qa-export-btn" onclick="handleQAExport()" disabled class="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-400 border border-slate-200/40 text-[10px] font-bold transition-all cursor-not-allowed" style="border-radius: var(--global-radius);">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m-3-3l3 3m0 0l3-3m-3 3V3m0 18a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>导出数据库 (需登录)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ================= 平台系统设置界面包装容器 (Settings View) ================= -->
+            <div id="settings-view-wrapper" class="hidden w-full h-full pt-4 px-6 pb-6 flex-col overflow-hidden select-none">
+                <!-- ================= TOP HEADER (Title and Close Button) ================= -->
+                <header class="flex items-center justify-between shrink-0 border-b border-slate-200/80 pb-3.5 mb-4">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-blue-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        </svg>
+                        <h1 class="text-sm font-bold text-slate-800 tracking-wide">Settings</h1>
+                    </div>
+                    <!-- Close Button (matches mockup's circle on right) -->
+                    <button onclick="setInterfaceState('home')" class="w-6 h-6 rounded-full border border-slate-300 flex items-center justify-center bg-white/60 hover:bg-slate-100 active:scale-95 transition-all shadow-sm" title="关闭设置">
+                        <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </header>
+
+                <!-- ================= MAIN LAYOUT (Left and Right Columns) ================= -->
+                <div class="flex-1 grid grid-cols-12 gap-6 overflow-hidden">
+                    
+                    <!-- ================= LEFT PANEL (col-span-4) ================= -->
+                    <div class="col-span-4 flex flex-col gap-4 h-full overflow-hidden">
+                        
+                        <!-- 1. Settings Menu Box -->
+                        <div class="flex-1 border border-slate-200/80 rounded-2xl bg-white/50 backdrop-blur-md p-3 flex flex-col overflow-hidden shadow-sm">
+                            <!-- Inner scrollable list -->
+                            <div class="flex-1 overflow-y-auto no-scrollbar space-y-1.5 pr-1" id="settings-menu-list">
+                                <!-- Category 1: 模型设置 -->
+                                <div class="space-y-0.5">
+                                    <div class="settings-nav-item root active" data-tab="model-settings" onclick="switchSettingsTab('model-settings')">
+                                        <span class="truncate">模型设置</span>
+                                    </div>
+                                    <div class="settings-nav-item child" data-tab="model-providers" onclick="switchSettingsTab('model-providers')">
+                                        <span class="truncate">Providers</span>
+                                    </div>
+                                    <div class="settings-nav-item child" data-tab="model-hyperparams" onclick="switchSettingsTab('model-hyperparams')">
+                                        <span class="truncate">模型超参</span>
+                                    </div>
+                                    <div class="settings-nav-item child" data-tab="model-sysprompt" onclick="switchSettingsTab('model-sysprompt')">
+                                        <span class="truncate">全局系统提示词</span>
+                                    </div>
+                                    <div class="settings-nav-item child" data-tab="module-prompts" onclick="switchSettingsTab('module-prompts')">
+                                        <span class="truncate">模块提示词配置</span>
+                                    </div>
+                                </div>
+
+                                <!-- Category 2: 执行设置 -->
+                                <div class="space-y-0.5 pt-1">
+                                    <div class="settings-nav-item root" data-tab="exec-settings" onclick="switchSettingsTab('exec-settings')">
+                                        <span class="truncate">执行设置</span>
+                                    </div>
+                                    
+                                    <!-- 推演节点设置 -->
+                                    <div class="settings-nav-item child" data-tab="deduction-nodes" onclick="switchSettingsTab('deduction-nodes')">
+                                        <span class="truncate">推演节点设置</span>
+                                    </div>
+                                    <div class="settings-nav-item sub-child" data-tab="node-planning" onclick="switchSettingsTab('node-planning')">
+                                        <span class="truncate">规划</span>
+                                    </div>
+                                    <div class="settings-nav-item sub-child" data-tab="node-deduction" onclick="switchSettingsTab('node-deduction')">
+                                        <span class="truncate">演绎</span>
+                                    </div>
+                                    <div class="settings-nav-item sub-child" data-tab="node-explanation" onclick="switchSettingsTab('node-explanation')">
+                                        <span class="truncate">解释</span>
+                                    </div>
+                                    <div class="settings-nav-item sub-child" data-tab="node-correction" onclick="switchSettingsTab('node-correction')">
+                                        <span class="truncate">修正</span>
+                                    </div>
+                                    
+                                    <!-- 写作设置 -->
+                                    <div class="settings-nav-item child" data-tab="writing-settings" onclick="switchSettingsTab('writing-settings')">
+                                        <span class="truncate">写作设置</span>
+                                    </div>
+                                    <div class="settings-nav-item sub-child" data-tab="writing-model" onclick="switchSettingsTab('writing-model')">
+                                        <span class="truncate">模型</span>
+                                    </div>
+                                    <div class="settings-nav-item sub-child" data-tab="writing-style" onclick="switchSettingsTab('writing-style')">
+                                        <span class="truncate">写作风格</span>
+                                    </div>
+                                    <div class="settings-nav-item sub-child" data-tab="writing-length" onclick="switchSettingsTab('writing-length')">
+                                        <span class="truncate">字数与分段控制</span>
+                                    </div>
+                                    <div class="settings-nav-item sub-child" data-tab="writing-prefs" onclick="switchSettingsTab('writing-prefs')">
+                                        <span class="truncate">创作偏好</span>
+                                    </div>
+
+                                    <!-- 聊天设置 -->
+                                    <div class="settings-nav-item child" data-tab="chat-settings" onclick="switchSettingsTab('chat-settings')">
+                                        <span class="truncate">聊天设置</span>
+                                    </div>
+                                    <div class="settings-nav-item sub-child" data-tab="chat-model" onclick="switchSettingsTab('chat-model')">
+                                        <span class="truncate">模型</span>
+                                    </div>
+                                    <div class="settings-nav-item sub-child" data-tab="chat-integration" onclick="switchSettingsTab('chat-integration')">
+                                        <span class="truncate">集成度</span>
+                                    </div>
+                                    <div class="settings-nav-item sub-child" data-tab="chat-group" onclick="switchSettingsTab('chat-group')">
+                                        <span class="truncate">群聊设置</span>
+                                    </div>
+
+                                    <!-- 助手设置 -->
+                                    <div class="settings-nav-item child" data-tab="assistant-settings" onclick="switchSettingsTab('assistant-settings')">
+                                        <span class="truncate">助手设置</span>
+                                    </div>
+                                    <div class="settings-nav-item sub-child" data-tab="assistant-model" onclick="switchSettingsTab('assistant-model')">
+                                        <span class="truncate">模型</span>
+                                    </div>
+                                    <div class="settings-nav-item sub-child" data-tab="assistant-behavior" onclick="switchSettingsTab('assistant-behavior')">
+                                        <span class="truncate">行为</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 2. User & Info Box -->
+                        <div class="h-[210px] shrink-0 border border-slate-200/80 rounded-2xl bg-white/50 backdrop-blur-md p-4 flex flex-col justify-between shadow-sm">
+                            <!-- User Profile & Overview Grid -->
+                            <div class="grid grid-cols-2 gap-3 flex-1 mb-3">
+                                
+                                <!-- Left: Profile & Creation Info -->
+                                <div class="flex flex-col gap-2.5 justify-between">
+                                    <!-- Top: Profile (Avatar + Username) -->
+                                    <div class="flex items-center gap-2">
+                                        <div id="settings-avatar" class="w-8 h-8 rounded-full bg-blue-100 border border-blue-200 flex items-center justify-center font-bold text-blue-600 text-xs shadow-sm">
+                                            G
+                                        </div>
+                                        <div class="flex flex-col min-w-0">
+                                            <span id="settings-username" class="text-[10px] font-bold text-slate-800 truncate">游客账户</span>
+                                            <span class="text-[8px] text-slate-400 font-medium leading-none">在线状态</span>
+                                        </div>
+                                    </div>
+                                    <!-- Bottom: Creation Overview Card -->
+                                    <div class="flex-1 p-2 bg-slate-50/80 border border-slate-200/50 rounded-xl flex flex-col justify-between">
+                                        <div class="text-[8px] font-bold text-slate-400 uppercase tracking-wider">创作概览</div>
+                                        <div class="flex flex-col gap-0.5 mt-1">
+                                            <div class="flex justify-between items-center text-[9px] text-slate-600">
+                                                <span>设定集:</span>
+                                                <span class="font-bold text-slate-800" id="settings-collections-count">2</span>
+                                            </div>
+                                            <div class="flex justify-between items-center text-[9px] text-slate-600">
+                                                <span>独立故事:</span>
+                                                <span class="font-bold text-slate-800" id="settings-stories-count">5</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Right: Usage Overview Card (Tall, spans full height) -->
+                                <div class="p-2 bg-slate-50/80 border border-slate-200/50 rounded-xl flex flex-col justify-between">
+                                    <div>
+                                        <div class="text-[8px] font-bold text-slate-400 uppercase tracking-wider">消耗概览</div>
+                                        <div class="flex flex-col gap-1 mt-1.5">
+                                            <div class="flex flex-col">
+                                                <span class="text-[8px] text-slate-400">API 耗量</span>
+                                                <span class="text-[11px] font-bold text-slate-700" id="settings-token-words">12.5k 字</span>
+                                            </div>
+                                            <div class="flex flex-col">
+                                                <span class="text-[8px] text-slate-400">剩余额度</span>
+                                                <span class="text-[11px] font-bold text-emerald-600">92%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="h-1 w-full bg-slate-200 rounded-full overflow-hidden">
+                                        <div class="h-full bg-emerald-500 rounded-full" style="width: 92%"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Account & DB Buttons -->
+                            <div class="flex flex-col gap-2 shrink-0">
+                                <button id="settings-login-btn" onclick="handleQAImport(); syncSettingsUserProfile();" class="w-full h-8 flex items-center justify-center gap-1.5 px-3 bg-blue-50 hover:bg-blue-100 active:scale-[0.98] border border-blue-200/60 text-[10px] font-bold text-blue-600 transition-all rounded-xl shadow-sm">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                                    </svg>
+                                    <span>登录 / 管理账号</span>
+                                </button>
+                                <button id="settings-logout-btn" onclick="handleSettingsLogout()" class="w-full h-8 flex items-center justify-center gap-1.5 px-3 bg-slate-50 hover:bg-slate-100 active:scale-[0.98] border border-slate-200 text-[10px] font-bold text-slate-600 transition-all rounded-xl">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+                                    </svg>
+                                    <span>登出 / 导出数据库</span>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- ================= RIGHT PANEL (col-span-8) ================= -->
+                    <div class="col-span-8 border border-slate-200/80 rounded-2xl bg-white/50 backdrop-blur-md p-6 flex flex-col overflow-hidden shadow-sm h-full relative">
+                        <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2 select-none" id="detail-panel-title">
+                            详细设置面板
+                        </h2>
+                        
+                        <div id="detail-panel-content" class="flex-1 overflow-y-auto no-scrollbar pr-1">
+                            <!-- Dynamically loaded settings forms will go here -->
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+    </main>
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>

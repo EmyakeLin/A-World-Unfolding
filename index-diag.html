@@ -1,0 +1,1180 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 鏁呬簨鍒涗綔骞冲彴 - 鏋佺畝姣斾緥鏍″噯鐗?/title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script src="kg-engine.js"></script>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="state-home flex h-screen w-full overflow-hidden select-none">
+
+    <!-- ================= 妯℃€佹 ================= -->
+    <div id="edit-modal-overlay" onclick="closeEditModal(event)">
+        <div id="edit-modal-box" onclick="event.stopPropagation()">
+            <div id="edit-modal-header">
+                <div id="edit-modal-header-left">
+                    <div id="edit-modal-type-dot"></div>
+                    <span id="edit-modal-title"></span>
+                    <button id="edit-modal-name-edit" onclick="startEditModalName()" title="缂栬緫鍚嶇О">
+                        <svg class="w-2.5 h-2.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/>
+                        </svg>
+                    </button>
+                    <span id="edit-modal-type-label"></span>
+                </div>
+                <button id="edit-modal-close" onclick="closeEditModal()" title="鍏抽棴">
+                    <svg class="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div id="edit-modal-body"></div>
+        </div>
+    </div>
+
+    <!-- ================= 鍥捐氨瀛愭ā鎬佺獥 ================= -->
+    <div id="kg-sub-modal-overlay" onclick="closeKgSubModal(event)">
+        <div id="kg-sub-modal-box" onclick="event.stopPropagation()">
+            <div id="kg-sub-modal-header">
+                <span id="kg-sub-modal-title"></span>
+                <button id="kg-sub-modal-close" onclick="closeKgSubModal()" title="鍏抽棴">
+                    <svg class="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div id="kg-sub-modal-body"></div>
+        </div>
+    </div>
+
+    <!-- ================= 閫夋嫨椤甸潰 (鍒濆闅愯棌锛屽湪涓荤▼搴忎腑閫氳繃渚ц竟鏍忓鑸Е鍙? ================= -->
+    <div id="selection-screen" class="hidden w-full h-full flex flex-col items-center justify-center p-10 overflow-y-auto">
+        <h1 class="text-2xl font-light tracking-tight text-slate-800 mb-2">璁惧畾缂栬緫</h1>
+        <p class="text-xs text-slate-500 mb-8">閫夋嫨涓€涓瀹氶泦鎴栫嫭绔嬫晠浜嬪紑濮嬬紪杈?/p>
+        <div id="select-list" class="grid grid-cols-2 gap-4 w-full max-w-3xl">
+            <!-- JS 鍔ㄦ€佽閰?-->
+        </div>
+        <p id="select-empty" class="hidden text-sm text-slate-400 mt-8">鏆傛棤鏁版嵁锛岃鍏堝湪涓荤▼搴忎腑鍒涘缓璁惧畾闆嗘垨鐙珛鏁呬簨銆?/p>
+    </div>
+
+    <!-- ================= 宸︿晶杈规爮 (Sidebar - 鑷敱灞曟敹鏁翠綋璁捐) ================= -->
+    <aside id="sidebar" class="w-44 flex flex-col h-full flex-shrink-0 modern-divider-r bg-white/30 backdrop-blur-md z-20">
+        
+        <!-- Logo 鍖哄煙 (鐐瑰嚮 LOGO 鑷敱鍒囨崲鎶樺彔/灞曞紑) -->
+        <div id="sidebar-logo-container" class="h-14 flex items-center px-4 border-b border-slate-200/60 shrink-0 cursor-pointer" onclick="toggleSidebar()">
+            <div class="flex items-center text-sm font-bold text-slate-800">
+                <svg class="w-4 h-4 text-blue-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path d="M12 2L2 12l10 10 10-10L12 2z"/>
+                </svg>
+                <span class="logo-text tracking-wider">LOGO</span>
+            </div>
+        </div>
+
+        <!-- 椤堕儴瀵艰埅 -->
+        <div class="px-2 py-3 shrink-0 space-y-1">
+            <div class="sidebar-tab active flex items-center" data-id="home" onclick="setInterfaceState('home'); setActiveSidebarTab(this)">
+                <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                <span class="sidebar-text">棣栭〉</span>
+            </div>
+            <div class="sidebar-tab flex items-center" data-id="collection-overview" onclick="setInterfaceState('collection-overview'); setActiveSidebarTab(this)">
+                <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                <span class="sidebar-text">璁惧畾闆嗘瑙?/span>
+            </div>
+            <div class="sidebar-tab flex items-center" data-id="chat" onclick="setInterfaceState('chat'); setActiveSidebarTab(this)">
+                <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+                <span class="sidebar-text">鑱婂ぉ</span>
+            </div>
+        </div>
+
+        <!-- 鍒嗗壊绾?(涓婅竟鐣岀嚎) -->
+        <div class="h-px bg-slate-200/80 w-full shrink-0"></div>
+
+        <!-- 涓棿鍙粴鍔ㄥ尯鍩?(涓婁笅鐢卞疄绾跨洿绾块檺瀹氾紝瀹岀編淇鍘熸湁鐮寸HTML瀹瑰櫒) -->
+        <div id="sidebar-scroll-container" class="flex-1 overflow-y-auto px-2 py-2 no-scrollbar space-y-4 relative">
+            <!-- 鍦ㄦ璁惧畾闆嗕笅鏂板缓鏁呬簨鐨勫揩鎹峰浘鏍?(鎶樺彔涓斿浜庤瀹氶泦鍐呴儴鏃舵贰鍏ユ樉绀? -->
+            <div id="sidebar-quick-create-container" class="absolute left-1/2 -translate-x-1/2 top-4 z-30">
+                <button onclick="handleSidebarQuickCreateStory(event)" class="modern-circle-lg cursor-pointer flex items-center justify-center" title="鍦ㄦ璁惧畾闆嗕笅鏂板缓鏁呬簨">
+                    <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- 璁惧畾闆嗘澘鍧?-->
+            <div class="space-y-1">
+                <div class="px-3 text-[10px] font-bold text-slate-400 tracking-[0.15em] uppercase sidebar-group-title mb-1.5 select-none">
+                    璁惧畾闆?                </div>
+                <div id="sidebar-collections-container" class="space-y-1">
+                    <!-- JS 鍔ㄦ€佽閰?-->
+                </div>
+            </div>
+            
+            <!-- 鐙珛鏁呬簨鏉垮潡 -->
+            <div class="space-y-1">
+                <div class="px-3 text-[10px] font-bold text-slate-400 tracking-[0.15em] uppercase sidebar-group-title mb-1.5 select-none">
+                    鐙珛鏁呬簨
+                </div>
+                <div id="sidebar-independent-container" class="space-y-1">
+                    <!-- JS 鍔ㄦ€佽閰?-->
+                </div>
+            </div>
+        </div>
+
+        <!-- 鍒嗗壊绾?(涓嬭竟鐣岀嚎) -->
+        <div class="h-px bg-slate-200/80 w-full shrink-0"></div>
+
+        <!-- 搴曢儴鏍?(缁熶竴鏍煎紡鐨勪晶杈规爮閫夐」鍗? -->
+        <div class="px-2 py-3 shrink-0 space-y-1">
+            <div class="sidebar-tab flex items-center" data-id="overview-bottom" onclick="setInterfaceState('collection-overview'); setActiveSidebarTab(this)">
+                <!-- 鍥?2 浣跨敤姒傝 SVG -->
+                <svg viewBox="0 0 100 100" class="w-3.5 h-3.5 shrink-0" stroke="currentColor" fill="none" stroke-width="12" stroke-linecap="round">
+                    <path d="M 38,22 A 28,28 0 0,0 38,78" />
+                    <path d="M 62,22 A 28,28 0 0,1 62,78" />
+                </svg>
+                <span class="sidebar-text">姒傝</span>
+            </div>
+            <div class="sidebar-tab flex items-center" data-id="export" onclick="setActiveSidebarTab(this)">
+                <!-- 鍥?3 瀵煎嚭 SVG -->
+                <svg viewBox="0 0 100 100" class="w-3.5 h-3.5 shrink-0" stroke="currentColor" fill="none" stroke-width="10" stroke-linejoin="round" stroke-linecap="round">
+                    <path d="M28,15 H62 L77,30 V85 H28 Z" />
+                    <path d="M62,15 V30 H77" />
+                    <path d="M52.5,45 V70 M38.5,56 L52.5,42 L66.5,56" />
+                </svg>
+                <span class="sidebar-text">瀵煎嚭</span>
+            </div>
+            <div class="sidebar-tab flex items-center" data-id="settings" onclick="setInterfaceState('settings'); setActiveSidebarTab(this)">
+                <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>
+                <span class="sidebar-text">璁剧疆</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ================= 涓诲唴瀹瑰尯 ================= -->
+    <main class="flex-1 h-full relative overflow-hidden flex flex-col items-center">
+        
+        <!-- 鍙充笂瑙掑渾褰㈠揩鎹锋搷浣?-->
+        <div class="absolute top-4 right-6 z-40">
+            <button onclick="toggleQuickActionsPopup(event)" class="w-6 h-6 rounded-full border border-slate-300 flex items-center justify-center bg-white/60 hover:bg-slate-100 active:scale-95 transition-all shadow-sm cursor-pointer relative" title="蹇嵎鎿嶄綔">
+                <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <circle cx="12" cy="5" r="1.5"/>
+                    <circle cx="12" cy="12" r="1.5"/>
+                    <circle cx="12" cy="19" r="1.5"/>
+                </svg>
+                <!-- 鎮诞寰爣鎸囩ず绗?-->
+                <span class="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                </span>
+            </button>
+        </div>
+
+        <!-- 
+             鏍稿績鍐呭鍨傜洿瀹瑰櫒锛?             - w-[60%]锛氬崰妯悜瀹藉害鐨?60%
+             - items-start锛氭墍鏈夊唴閮ㄦ瀯浠跺湪杈撳叆妗嗗乏杈圭紭榻愭瀵归綈
+        -->
+        <div id="main-content-wrapper" class="w-[60%] min-w-[360px] max-w-[580px] h-full flex flex-col items-start justify-between select-none">
+            
+            <!-- 銆愮涓€鍖哄煙锛氬紩瀵艰 (2/5 楂樺害 = 40vh)銆?-->
+            <section class="h-[40%] w-full flex flex-col justify-end pb-8">
+                <!-- 棣栭〉鐘舵€佹爣棰?-->
+                <h1 class="for-home text-3xl font-light tracking-tight text-slate-800 leading-snug text-left">
+                    鎯宠涓?br><span class="font-normal text-slate-900">浠€涔堟晠浜嬶紵</span>
+                </h1>
+                
+                <!-- 鍒涗綔鐘舵€佹爣棰?(鍦?[璁惧畾闆嗗悕绉癩 鍐呭垱浣滄晠浜? -->
+                <h1 class="for-creating text-3xl font-light tracking-tight text-slate-800 leading-snug text-left">
+                    鍦?
+                    <span class="modern-pill inline-flex items-center gap-1.5 bg-white border border-slate-200 text-xs px-2.5 py-0.5 align-middle mx-1">
+                        <svg viewBox="0 0 100 100" class="w-3.5 h-3.5 text-blue-500 shrink-0" stroke="currentColor" fill="none" stroke-width="10" stroke-linecap="round">
+                            <rect x="18" y="22" width="26" height="14" rx="7" />
+                            <rect x="60" y="16" width="14" height="30" rx="7" />
+                            <rect x="18" y="52" width="14" height="30" rx="7" />
+                            <rect x="48" y="62" width="26" height="14" rx="7" />
+                        </svg>
+                        <span class="active-collection-name">璁惧畾闆?/span>
+                    </span> 
+                    鍐?br>
+                    <span class="font-normal text-slate-900">鍒涗綔鏁呬簨銆傛兂瑕佷粈涔堬紵</span>
+                </h1>
+            </section>
+
+            <!-- 銆愮浜屽尯鍩燂細杈撳叆妗?(3/10 楂樺害 = 30vh)銆?-->
+            <section class="h-[30%] w-full flex flex-col justify-center relative">
+                <!-- 鎮诞鑳跺泭鏍囩锛堜粎鍦ㄩ椤电姸鎬佷笅鏄剧ず锛?-->
+                <!-- 鍒涗綔妯″紡閫夋嫨鍣?-->
+                <div id="floating-label" class="absolute z-10" style="top: calc(50% - 130px / 2 - 12px); left: var(--outer-radius);">
+                    <!-- 鎶藉眽锛堜笌瑙﹀彂鏍囩宸︾瀵归綈锛屽睍寮€鍚庡唴瀹瑰湪瑙﹀彂鏍囩鍙充晶锛屽眰绾-1锛?-->
+                    <div id="creation-mode-drawer" class="creation-mode-drawer">
+                        <!-- 鍔ㄦ€佸崰浣?spacer锛屽叾瀹藉害鍦ㄥ睍寮€鏃堕€氳繃 JS 鑷姩璁剧疆涓轰笌 trigger button 鐨?offsetWidth 涓€鑷?-->
+                        <div id="creation-mode-drawer-spacer" class="shrink-0"></div>
+                        
+                        <div class="creation-mode-option active" data-mode="AUTO" title="AUTO">
+                            <span class="mode-label">AUTO</span>
+                        </div>
+                        <div class="h-3 w-px bg-slate-200/80 shrink-0"></div>
+                        <div class="creation-mode-option" data-mode="COLLECTION" title="璁惧畾闆?>
+                            <svg viewBox="0 0 100 100" class="w-3.5 h-3.5 shrink-0" stroke="currentColor" fill="none" stroke-width="10" stroke-linecap="round">
+                                <rect x="18" y="22" width="26" height="14" rx="7" /><rect x="60" y="16" width="14" height="30" rx="7" /><rect x="18" y="52" width="14" height="30" rx="7" /><rect x="48" y="62" width="26" height="14" rx="7" />
+                            </svg>
+                        </div>
+                        <div class="h-3 w-px bg-slate-200/80 shrink-0"></div>
+                        <div class="creation-mode-option" data-mode="INDEPENDENT" title="鐙珛鏁呬簨">
+                            <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <!-- 瑙﹀彂鏍囩锛堝湪鎶藉眽涓婂眰锛屽畬鍏ㄩ伄鎸℃娊灞夊乏渚э紝灞傜骇z-2锛?-->
+                    <div id="creation-mode-trigger" class="modern-pill bg-white border border-slate-200 text-slate-600 font-semibold text-[11px] cursor-pointer select-none flex items-center gap-1.5 absolute left-0 top-0 shadow-sm" style="z-index: 2; height: 24px; border-radius: 12px;">
+                        <span>鏋勫缓璁惧畾骞跺垱浣?/span>
+                        <svg id="creation-mode-arrow" class="w-2.5 h-2.5 text-slate-400 transition-transform duration-200 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                        </svg>
+                        <span id="creation-mode-label" class="text-blue-500 font-bold shrink-0">AUTO</span>
+                    </div>
+                </div>
+
+                <!-- 缁勪欢鍖栦富杈撳叆妗嗗鍣?-->
+                <div id="home-input-container" class="w-full relative"></div>
+            </section>
+
+            <!-- 銆愮涓夊尯鍩燂細鏈€杩戞晠浜?/ 渚挎嵎鎿嶄綔 (3/10 楂樺害 = 30vh)銆?-->
+            <!-- 棣栭〉鐘舵€佷笅鐨勬晠浜嬪睍绀?-->
+            <section class="for-home h-[30%] w-full flex flex-col justify-start pt-8">
+                <h3 class="text-[11px] font-bold tracking-wider uppercase text-slate-400 mb-3 text-left">
+                    Recent Stories
+                </h3>
+                
+                <!-- 鏁呬簨鍒楄〃婊氬姩灞?(More 宸插寘鍚湪婊氬姩鍖哄煙鍐呴儴) -->
+                <div id="stories-list" class="space-y-2.5 ml-0.5 transition-all duration-300">
+                    <!-- JS鍔ㄦ€佸姞杞?-->
+                </div>
+            </section>
+
+            <!-- 鍒涗綔鐘舵€佷笅鐨勪究鎹锋搷浣滃睍绀?(楂樺害澧炲姞銆佸渾瑙掔煩褰㈠榻愮殑鎸夐挳) -->
+            <section class="for-creating h-[30%] w-full flex flex-col justify-start pt-8">
+                <h3 class="text-[11px] font-bold tracking-wider uppercase text-slate-400 mb-4 text-left">
+                    渚挎嵎鎿嶄綔
+                </h3>
+                
+                <div class="flex items-center gap-4 ml-0.5">
+                    <!-- 缂栬緫璁惧畾闆?(楂樺害姣斿師24px澧為珮鑷?6px) -->
+                    <div class="btn-tall flex items-center gap-2 cursor-pointer">
+                        <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                        </svg>
+                        缂栬緫璁惧畾闆?                    </div>
+                    <!-- 璁剧疆鐙珛璁惧畾 (楂樺害姣斿師24px澧為珮鑷?6px) -->
+                    <div onclick="handleEditIndependentStorySettingsFromHome()" class="btn-tall flex items-center gap-2 cursor-pointer">
+                        <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75"/>
+                        </svg>
+                        璁剧疆鐙珛璁惧畾
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- ================= 鑱婂ぉ鐣岄潰鍖呰瀹瑰櫒 (Chat View) ================= -->
+        <div id="chat-view-wrapper" class="hidden w-[60%] min-w-[360px] max-w-[580px] h-full flex flex-col items-start justify-between select-none">
+            
+            <!-- 銆愮涓€鍖哄煙锛氬紩瀵艰 (涓庤鑹插璇濈姸鎬?銆?-->
+            <section class="h-[40%] shrink-0 w-full flex flex-col justify-end pb-8">
+                <h1 id="chat-view-title" class="text-3xl font-light tracking-tight text-slate-800 leading-snug text-left">
+                    涓?
+                    <span class="modern-pill inline-flex items-center gap-1 bg-white border border-slate-200 text-xs px-2.5 py-0.5 align-middle mx-1 select-none hover:bg-slate-50 transition-colors cursor-pointer" onclick="openChatAtPopup(event)">
+                        <span class="text-blue-500 font-bold shrink-0">@</span>
+                        <span class="font-normal text-slate-800">瑙掕壊</span>
+                    </span><br>
+                    鑱婁簺浠€涔堬紵
+                </h1>
+            </section>
+            <!-- 銆愮浜屽尯鍩燂細鑱婂ぉ杈撳叆妗嗐€?-->
+            <section class="h-[30%] shrink-0 w-full flex flex-col justify-center relative">
+                <div id="chat-input-box-wrapper" class="w-full relative"></div>
+            </section>
+
+            <!-- 銆愮涓夊尯鍩燂細About 瑙掕壊璇︽儏 / 缇ょ粍璇︽儏銆?-->
+            <section class="flex-1 min-h-0 w-full flex flex-col justify-start pt-8 overflow-hidden mb-6">
+                <h3 id="chat-about-title" class="text-[11px] font-bold tracking-wider uppercase text-slate-400 mb-3 text-left">
+                    About @瑙掕壊
+                </h3>
+                <div id="chat-about-content" class="w-full flex-1 overflow-hidden">
+                    <!-- JS 鍔ㄦ€佹覆鏌?-->
+                </div>
+            </section>
+
+        </div>
+
+        <!-- ================= 璁惧畾闆嗘瑙堢晫闈㈠寘瑁呭鍣?(Collection Overview) ================= -->
+        <div id="collection-overview-wrapper" class="hidden w-full h-full pt-4 px-6 pb-6 flex flex-col overflow-hidden">
+            <!-- ================= TOP HEADER ================= -->
+            <header class="flex items-center gap-4 shrink-0 pr-12 mb-4">
+                <div class="modern-pill border-slate-300 font-bold text-slate-800 text-xs px-3.5 flex items-center gap-2 shadow-sm bg-white/80 shrink-0 select-none">
+                    <svg class="w-3.5 h-3.5 text-blue-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                    <span class="tracking-wide">璁惧畾闆嗕笌鐙珛鏁呬簨鎬昏</span>
+                </div>
+                
+                <div class="text-xs text-slate-500 font-medium italic border-l-2 border-slate-300 pl-3 py-0.5 truncate max-w-xl select-none">
+                    " 鎵胯浇涓栫晫瑙傚簳绋跨殑璁惧畾闆嗭紝涓庤交閲忕伒娲荤嫭绔嬪垱浣滅殑鏁呬簨銆?"
+                </div>
+            </header>
+
+            <!-- ================= TWO COLUMNS LAYOUT ================= -->
+            <div class="flex-1 grid grid-cols-2 gap-10 mt-2 overflow-hidden relative">
+                <!-- Left Column: Setting Collections -->
+                <section class="flex flex-col h-full overflow-hidden pr-5">
+                    <div class="flex items-center justify-between mb-4 shrink-0 px-1 select-none">
+                        <h2 class="text-base font-extrabold text-slate-800 flex items-center gap-0.5">
+                            <span class="text-blue-500 font-serif text-lg font-bold">銆?/span>璁惧畾闆?span class="text-blue-500 font-serif text-lg font-bold">銆?/span>
+                        </h2>
+                        <span id="overview-collections-count" class="bg-blue-50 text-blue-600 text-[10px] px-2 py-0.5 rounded-full font-bold">3</span>
+                    </div>
+                    
+                    <!-- Scrollable List of Setting Collections -->
+                    <div id="overview-collections-list" class="flex-1 overflow-y-auto no-scrollbar space-y-4 pb-4 pr-1">
+                        <!-- Dynamically loaded setting collection cards -->
+                    </div>
+                    
+                    <!-- Bottom action split by solid line to match the sketch exactly -->
+                    <div class="shrink-0 pt-4 mt-2 border-t border-slate-200/80">
+                        <button onclick="handleCreateNewCollection()" class="w-full h-11 border border-dashed border-blue-200 hover:border-blue-400 bg-blue-50/30 hover:bg-blue-50/70 hover:text-blue-600 rounded-xl text-[11.5px] font-bold text-slate-600 transition-all flex items-center justify-center gap-2 active:scale-[0.98] shadow-sm">
+                            <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                            <span>鏂板缓璁惧畾闆?/span>
+                        </button>
+                    </div>
+                </section>
+                
+                <!-- Center vertical splitter: hand-drawn double-line style, elegantly formatted! -->
+                <div class="absolute top-4 bottom-4 left-1/2 -translate-x-1/2 w-1 border-l border-r border-slate-200/80 pointer-events-none"></div>
+                
+                <!-- Right Column: Independent Stories -->
+                <section class="flex flex-col h-full overflow-hidden pl-5">
+                    <div class="flex items-center justify-between mb-4 shrink-0 px-1 select-none">
+                        <h2 class="text-base font-extrabold text-slate-800 flex items-center gap-0.5">
+                            <span class="text-indigo-500 font-serif text-lg font-bold">銆?/span>鐙珛鏁呬簨<span class="text-indigo-500 font-serif text-lg font-bold">銆?/span>
+                        </h2>
+                        <span id="overview-stories-count" class="bg-indigo-50 text-indigo-600 text-[10px] px-2 py-0.5 rounded-full font-bold">5</span>
+                    </div>
+                    
+                    <!-- Scrollable List of Independent Stories (holds the +鏂板缓鐙珛鏁呬簨 card button inline) -->
+                    <div id="overview-stories-list" class="flex-1 overflow-y-auto no-scrollbar space-y-4 pb-4 pr-1">
+                        <!-- Dynamically loaded independent story cards and the +鏂板缓鐙珛鏁呬簨 card at the end -->
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <!-- ================= 璁惧畾闆嗘煡鐪嬬晫闈㈠寘瑁呭鍣?(Collection View) ================= -->
+        <div id="collection-view-wrapper" class="hidden w-full h-full pt-4 px-6 pb-6 flex flex-col overflow-hidden">
+            
+            <!-- ================= TOP HEADER (璁惧畾闆嗗熀鏈鏄庡尯鍩? ================= -->
+            <header class="flex items-center gap-4 shrink-0 pr-12">
+                <div class="modern-pill border-slate-300 font-bold text-slate-800 text-xs px-3.5 flex items-center gap-2 shadow-sm bg-white/80 shrink-0">
+                    <svg viewBox="0 0 100 100" class="w-4 h-4 text-blue-500 shrink-0" stroke="currentColor" fill="none" stroke-width="10" stroke-linecap="round">
+                        <rect x="18" y="22" width="26" height="14" rx="7" />
+                        <rect x="60" y="16" width="14" height="30" rx="7" />
+                        <rect x="18" y="52" width="14" height="30" rx="7" />
+                        <rect x="48" y="62" width="26" height="14" rx="7" />
+                    </svg>
+                    <span id="collection-title" class="tracking-wide">璁惧畾闆?/span>
+                </div>
+                
+                <div class="text-xs text-slate-500 font-medium italic border-l-2 border-slate-300 pl-3 py-0.5 truncate max-w-xl">
+                    " <span id="collection-desc">璁惧畾闆嗘弿杩?/span> "
+                </div>
+            </header>
+
+            <!-- ================= BOTTOM CONTENT (涓夋爮涓昏宸ヤ綔鐗堝浘) ================= -->
+            <div class="flex-1 grid grid-cols-12 gap-6 mt-6 overflow-hidden">
+                
+                <!-- 1. LEFT PANEL: STORIES COLUMN (鏁呬簨鍒楄〃) -->
+                <section class="col-span-3 flex flex-col h-full overflow-hidden">
+                    <div class="flex items-center justify-between mb-3 shrink-0 px-1">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Stories</span>
+                            <span id="stories-count" class="bg-slate-100 text-slate-500 text-[9px] px-1.5 py-0.5 rounded-full font-bold">3</span>
+                        </div>
+                    </div>
+                    
+                    <div id="stories-wrapper" class="flex-1 flex flex-col overflow-hidden">
+                        <!-- JS 鍔ㄦ€佽閰?-->
+                    </div>
+                </section>
+
+                <!-- 2. CENTER PANEL: WORLD VIEW KNOWLEDGE GRAPH (涓栫晫瑙傜煡璇嗗浘璋? -->
+                <section class="col-span-6 flex flex-col h-full overflow-hidden">
+                    <div class="flex items-center justify-between mb-3 shrink-0 px-1">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Collection View</span>
+                            <div class="flex bg-slate-200/60 rounded-full p-0.5" id="view-toggle">
+                                <button id="btn-view-graph" class="text-[9px] font-bold px-3 py-0.5 rounded-full bg-white text-slate-800 shadow-sm transition-all" onclick="setViewMode('graph')">Graph</button>
+                                <button id="btn-view-list" class="text-[9px] font-bold px-3 py-0.5 rounded-full text-slate-500 hover:text-slate-700 transition-all" onclick="setViewMode('list')">List</button>
+                            </div>
+                        </div>
+                        <span class="text-[9px] font-semibold text-slate-400 mr-2 flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>鍔涘鍚戝紩鎿庢縺娲?                        </span>
+                    </div>
+
+                    <div class="flex-1 relative overflow-hidden modern-box-outer p-0 flex flex-col justify-between" id="center-box">
+                        
+                        <!-- Graph 瑙嗗浘 (D3 SVG) -->
+                        <div id="graph-view" class="w-full h-full relative fade-in">
+                            <svg id="kg-svg" class="w-full h-full cursor-grab active:cursor-grabbing"></svg>
+                            
+                            <!-- 鑺傜偣鐐瑰嚮璇︽儏鍗＄墖 -->
+                            <div id="node-detail-panel" class="hidden absolute top-4 left-4 z-10 w-44 bg-white/85 backdrop-blur-md rounded-2xl border border-slate-200/80 p-3 shadow-xl flex flex-col gap-2 transition-all duration-300">
+                                <div class="flex justify-between items-start">
+                                    <span id="node-detail-type" class="text-[8px] font-bold px-1.5 py-0.5 rounded text-white bg-blue-500 uppercase tracking-wider">涓栫晫瑙?/span>
+                                    <button onclick="closeDetailPanel()" class="text-slate-400 hover:text-slate-600 transition-colors">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                                    </button>
+                                </div>
+                                <h4 id="node-detail-name" class="text-[11px] font-bold text-slate-800 leading-tight">鑺傜偣鍚嶇О</h4>
+                                <p id="node-detail-desc" class="text-[9px] text-slate-500 leading-relaxed max-h-20 overflow-y-auto pr-1">鑺傜偣鎻忚堪</p>
+                                <div class="h-px bg-slate-100 my-0.5"></div>
+                                <button onclick="editCurrentNode()" class="w-full text-center text-[9px] font-bold text-blue-500 hover:bg-blue-50/50 py-1 rounded-lg border border-blue-200/60 transition-colors shrink-0">
+                                    缂栦慨璇ヨ瀹?                                </button>
+                            </div>
+                        </div>
+
+                        <!-- List 瑙嗗浘 -->
+                        <div id="list-view" class="w-full h-full hidden overflow-y-auto no-scrollbar p-6 space-y-5 fade-in">
+                            <div class="list-section" id="list-section-worldview">
+                                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-teal-400"></span>涓栫晫瑙?(World View)
+                                </h4>
+                                <div class="space-y-2" id="list-worldview-items"></div>
+                            </div>
+                            <div class="list-section" id="list-section-scenes">
+                                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-orange-400"></span>鍦烘櫙 (Scenes)
+                                </h4>
+                                <div class="space-y-2" id="list-scene-items"></div>
+                            </div>
+                            <div class="list-section" id="list-section-characters">
+                                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>瑙掕壊 (Characters)
+                                </h4>
+                                <div class="space-y-2" id="list-character-items"></div>
+                            </div>
+                            <div class="list-section" id="list-section-props">
+                                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>閬撳叿 (Props)
+                                </h4>
+                                <div class="space-y-2" id="list-prop-items"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 涓ぎ涓嬫柟鎿嶇洏鎸夐挳缇ょ粍 -->
+                    <footer class="mt-4 shrink-0 grid grid-cols-12 gap-3">
+                        <!-- 宸︿晶锛氬弻鍊嶉珮搴?缂栬緫璁惧畾" -->
+                        <button onclick="handleEditSettings()" class="col-span-4 h-[78px] rounded-2xl border border-slate-300 hover:border-slate-400 bg-white hover:bg-slate-50 shadow-sm flex flex-col justify-center items-center gap-1.5 transition-all group active:scale-[0.98]">
+                            <div class="w-6 h-6 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center transition-colors group-hover:bg-blue-100">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg>
+                            </div>
+                            <span class="text-xs font-bold text-slate-700">缂栬緫璁惧畾</span>
+                        </button>
+                        
+                        <!-- 鍙充晶锛?x2璺宠浆鎸夐挳 -->
+                        <div class="col-span-8 grid grid-cols-2 gap-2">
+                            <button onclick="jumpToCategory('worldview')" class="h-[36px] rounded-xl border border-slate-200/80 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 transition-colors flex items-center justify-center gap-1.5 text-xs font-bold shadow-sm active:scale-[0.97]">
+                                <span class="w-1.5 h-1.5 rounded-full bg-teal-400"></span>
+                                <span>杞埌涓栫晫瑙?/span>
+                            </button>
+                            <button onclick="jumpToCategory('scenes')" class="h-[36px] rounded-xl border border-slate-200/80 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 transition-colors flex items-center justify-center gap-1.5 text-xs font-bold shadow-sm active:scale-[0.97]">
+                                <span class="w-1.5 h-1.5 rounded-full bg-orange-400"></span>
+                                <span>杞埌鍦烘櫙</span>
+                            </button>
+                            <button onclick="jumpToCategory('characters')" class="h-[36px] rounded-xl border border-slate-200/80 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 transition-colors flex items-center justify-center gap-1.5 text-xs font-bold shadow-sm active:scale-[0.97]">
+                                <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                                <span>杞埌瑙掕壊</span>
+                            </button>
+                            <button onclick="jumpToCategory('props')" class="h-[36px] rounded-xl border border-slate-200/80 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 transition-colors flex items-center justify-center gap-1.5 text-xs font-bold shadow-sm active:scale-[0.97]">
+                                <span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+                                <span>杞埌閬撳叿</span>
+                            </button>
+                        </div>
+                    </footer>
+                </section>
+
+                <!-- 3. RIGHT PANEL: CHAT COLUMN (鑱婂ぉ鍒楄〃) -->
+                <section class="col-span-3 flex flex-col h-full overflow-hidden">
+                    <div class="flex items-center justify-between mb-3 shrink-0 px-1">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Chat</span>
+                            <span id="chats-count" class="bg-slate-100 text-slate-500 text-[9px] px-1.5 py-0.5 rounded-full font-bold">3</span>
+                        </div>
+                    </div>
+
+                    <div id="chats-wrapper" class="flex-1 flex flex-col overflow-hidden">
+                        <!-- JS 鍔ㄦ€佽閰?-->
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <!-- ================= 璁惧畾闆嗙紪杈戠晫闈㈠寘瑁呭鍣?(Collection Edit) ================= -->
+        <div id="collection-edit-wrapper" class="hidden w-full h-full flex flex-col overflow-hidden">
+            
+            <!-- TOP HEADER (缂栬緫鍣ㄥ叏灞€椤堕儴鏍? -->
+            <header class="h-14 w-full flex items-center px-6 shrink-0 border-b border-slate-200/60 bg-white/30 backdrop-blur-md z-10">
+                <div class="flex items-center gap-3">
+                    <!-- 杩斿洖璁惧畾闆嗘煡鐪嬮〉闈?/ 杩斿洖鏁呬簨椤甸潰 -->
+                    <button id="edit-exit-btn" onclick="exitCollectionEdit()" class="w-6 h-6 rounded-full border border-slate-300 flex items-center justify-center bg-white/60 hover:bg-slate-100 transition-colors" title="杩斿洖璁惧畾闆嗘煡鐪?>
+                        <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                    </button>
+                    <!-- 璁惧畾闆?鏁呬簨鍚嶇О鑳跺泭 -->
+                    <div class="modern-pill border-slate-300 font-bold text-slate-800 text-xs px-3.5 flex items-center gap-2 shadow-sm bg-white/80 shrink-0">
+                        <!-- 璁惧畾闆嗗浘鏍?-->
+                        <svg id="edit-collection-icon-blocks" viewBox="0 0 100 100" class="w-4 h-4 text-blue-500 shrink-0" stroke="currentColor" fill="none" stroke-width="10" stroke-linecap="round">
+                            <rect x="18" y="22" width="26" height="14" rx="7" />
+                            <rect x="60" y="16" width="14" height="30" rx="7" />
+                            <rect x="18" y="52" width="14" height="30" rx="7" />
+                            <rect x="48" y="62" width="26" height="14" rx="7" />
+                        </svg>
+                        <!-- 鐙珛鏁呬簨鍥炬爣 (涔︽湰锛屼娇鐢ㄥ凡瀛樺湪鐨?book SVG) -->
+                        <svg id="edit-collection-icon-book" class="w-3.5 h-3.5 text-indigo-500 shrink-0 hidden" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                        </svg>
+                        <span id="edit-collection-title" class="tracking-wide">璁惧畾闆?/span>
+                    </div>
+                    <!-- 閲嶅懡鍚嶈瀹氶泦鎸夐挳 (浠呭浘鏍囷紝鏃犳枃鏈? -->
+                    <button id="edit-rename-btn" onclick="renameCollection()" class="w-6 h-6 rounded-full border border-slate-300 flex items-center justify-center bg-white/60 hover:bg-slate-100 active:scale-95 transition-all shadow-sm cursor-pointer ml-1" title="閲嶅懡鍚嶈瀹氶泦">
+                        <svg class="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/>
+                        </svg>
+                    </button>
+                </div>
+            </header>
+
+            <!-- 涓嬫柟鍙屾爮涓诲伐浣滃尯 -->
+            <div class="flex-1 w-full flex overflow-hidden">
+                
+                <!-- ========== 宸︿晶锛氳瀹氬崱鐗囨祻瑙?缂栬緫鍖?========== -->
+                <div class="flex-1 flex flex-col h-full overflow-hidden p-6">
+                    
+                    <!-- 鍒嗙被閫夐」鍗℃爮 -->
+                    <div class="flex items-center gap-1 shrink-0 mb-4">
+                        <div id="edit-category-tabs" class="flex items-center gap-1">
+                            <div class="edit-category-tab active" data-category="worldview" onclick="switchEditCategory('worldview', this)">涓栫晫瑙?/div>
+                            <div class="edit-category-tab" data-category="character" onclick="switchEditCategory('character', this)">瑙掕壊</div>
+                            <div class="edit-category-tab" data-category="scene" onclick="switchEditCategory('scene', this)">鍦烘櫙</div>
+                            <div class="edit-category-tab" data-category="prop" onclick="switchEditCategory('prop', this)">閬撳叿</div>
+                        </div>
+                    </div>
+
+                    <!-- 鎼滅储鏍?+ 瑙嗗浘鍒囨崲 -->
+                    <div class="flex items-center gap-3 shrink-0 mb-4">
+                        <!-- 鎼滅储妗?-->
+                        <div class="flex-1 flex items-center px-3 gap-2 bg-white border border-slate-200 shadow-sm" style="height: var(--global-h); border-radius: var(--global-radius);">
+                            <svg class="w-3 h-3 text-slate-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                            <input type="text" id="edit-search-input" placeholder="鎼滅储璁惧畾鏉＄洰..." class="w-full h-full bg-transparent border-0 outline-none text-[10px] font-medium text-slate-600 placeholder-slate-300" oninput="filterEditCards()" />
+                        </div>
+                        <!-- 鍒楄〃/鍥捐氨瑙嗗浘鍒囨崲 -->
+                        <div class="flex bg-slate-200/60 rounded-full p-0.5 shrink-0">
+                            <button id="edit-view-list-btn" class="text-[9px] font-bold px-3 py-0.5 rounded-full bg-white text-slate-800 shadow-sm transition-all" onclick="setEditViewMode('list')">鍒楄〃</button>
+                            <button id="edit-view-graph-btn" class="text-[9px] font-bold px-3 py-0.5 rounded-full text-slate-500 hover:text-slate-700 transition-all" onclick="setEditViewMode('graph')">鍥捐氨</button>
+                        </div>
+                    </div>
+
+                    <!-- 璁惧畾鍗＄墖鍒楄〃/缃戞牸鍖哄煙 (鍙粴鍔? -->
+                    <div id="edit-cards-container" class="flex-1 overflow-y-auto no-scrollbar">
+                        <div id="edit-cards-area"></div>
+                    </div>
+                    <!-- 璁惧畾闆嗗浘璋卞尯鍩?(D3 SVG, 鍗犳弧) -->
+                    <div id="edit-graph-area" class="hidden flex-1 relative overflow-hidden bg-white/65 backdrop-blur-md rounded-2xl border border-slate-200/80">
+                        <svg id="edit-kg-svg" class="w-full h-full cursor-grab active:cursor-grabbing"></svg>
+                    </div>
+
+                    <!-- 搴曢儴锛氭柊澧炶瀹氭寜閽?-->
+                    <div class="shrink-0 mt-4">
+                        <button onclick="addNewSettingItem()" class="w-full h-9 border border-dashed border-slate-300 hover:border-blue-300 bg-white/50 hover:bg-blue-50/50 hover:text-blue-600 rounded-xl text-[10px] font-bold text-slate-500 transition-all flex items-center justify-center gap-1.5 active:scale-[0.98]">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                            <span>鏂板璁惧畾</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ========== 鍙充晶锛欰I瀵硅瘽寮忚瀹氱紪杈戞爮 ========== -->
+                <div class="w-80 flex flex-col h-full bg-white/30 backdrop-blur-md border-l border-slate-200/80 overflow-hidden shrink-0">
+                    <div class="w-80 h-full flex flex-col overflow-hidden shrink-0">
+                        
+                        <!-- 鏍忔爣棰?-->
+                        <div class="flex items-center justify-between px-4 pt-4 pb-2 shrink-0">
+                            <div class="flex items-center gap-2">
+                                <span class="text-[11px] font-bold text-slate-700 tracking-wider">璁惧畾缂栬緫</span>
+                                <svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/>
+                                </svg>
+                            </div>
+                            <button onclick="clearEditChat()" class="text-[9px] font-bold text-blue-500 hover:text-blue-600 bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded transition-colors" title="鏂板缓浼氳瘽">
+                                New
+                            </button>
+                        </div>
+
+                        <!-- AI瀵硅瘽娑堟伅鍖?(鍙粴鍔? -->
+                        <div id="edit-chat-list" class="flex-1 overflow-y-auto no-scrollbar px-4 py-3 space-y-3">
+                            <!-- 鍒濆AI娆㈣繋娑堟伅 -->
+                            <div class="flex items-start gap-2 w-full">
+                                <div class="w-5 h-5 rounded-full bg-blue-50 text-blue-500 font-bold text-[9px] flex items-center justify-center shrink-0 border border-blue-200 mt-0.5 shadow-sm select-none">A</div>
+                                <div class="flex flex-col items-start max-w-[85%]">
+                                    <div class="p-2.5 bg-white border border-slate-200 text-[10px] font-medium text-slate-600 leading-relaxed text-left shadow-sm" style="border-radius: var(--global-radius);">
+                                        浣犲ソ锛佹垜鏄瀹氱紪杈戝姪鎵嬨€備綘鍙互鍛婅瘔鎴戜綘鎯冲垱寤烘垨淇敼鐨勮瀹氬唴瀹癸紝姣斿锛?br><br>
+                                        鈥?<strong class="text-blue-500">甯垜璁捐涓€涓笘鐣?/strong><br>
+                                        鈥?<strong class="text-blue-500">鏂板涓€涓鑹?/strong><br>
+                                        鈥?<strong class="text-blue-500">淇敼鏌愪釜璁惧畾闆嗚妭鐐?/strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 搴曢儴杈撳叆妗?-->
+                        <div class="px-3 pb-3 pt-1 shrink-0">
+                            <div id="edit-chat-input-container" class="w-full relative"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= 瀵硅瘽鍒涗綔鐣岄潰鍖呰瀹瑰櫒 (Dialogue View) ================= -->
+        <div id="dialogue-view-wrapper" class="hidden w-full h-full flex flex-col overflow-hidden">
+            
+            <!-- TOP HEADER (璐┛鍏ㄥ鐨勫叏灞€椤堕儴鏍? -->
+            <header class="h-14 w-full flex items-center justify-between px-6 shrink-0 border-b border-slate-200/60 bg-white/30 backdrop-blur-md z-10">
+                <div class="flex items-center gap-2">
+                    <!-- 杩斿洖涓婚〉鐨勫皬杩斿洖绠ご -->
+                    <button onclick="setInterfaceState('home')" class="w-6 h-6 rounded-full border border-slate-300 flex items-center justify-center bg-white/60 hover:bg-slate-100 transition-colors" title="杩斿洖棣栭〉">
+                        <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                    </button>
+                    <!-- 鎸傝浇鐨勮瀹氶泦/鐙珛鏁呬簨鑳跺泭 (鍙偣鍑昏繘琛岃瀹氱紪杈? -->
+                    <div id="dialogue-collection-pill" onclick="handleDialogueCollectionPillClick()" class="modern-pill border-slate-200 text-slate-500 text-[10px] font-semibold flex items-center gap-1 shadow-sm bg-white/80 shrink-0 cursor-pointer hover:bg-slate-50 transition-all">
+                        <!-- 璁惧畾闆嗗浘鏍?-->
+                        <svg id="dialogue-collection-icon-blocks" viewBox="0 0 100 100" class="w-3 h-3 text-slate-400 shrink-0" stroke="currentColor" fill="none" stroke-width="10" stroke-linecap="round">
+                            <rect x="18" y="22" width="26" height="14" rx="7" />
+                            <rect x="60" y="16" width="14" height="30" rx="7" />
+                            <rect x="18" y="52" width="14" height="30" rx="7" />
+                            <rect x="48" y="62" width="26" height="14" rx="7" />
+                        </svg>
+                        <!-- 鐙珛鏁呬簨鍥炬爣 -->
+                        <svg id="dialogue-collection-icon-book" class="w-3 h-3 text-indigo-400 shrink-0 hidden" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                        </svg>
+                        <span id="dialogue-collection-name">璁惧畾闆?/span>
+                    </div>
+                </div>
+
+                <!-- 灞呬腑锛氭晠浜嬫爣棰?(绫讳技鎵嬬粯鐨?[鏁呬簨 1] 鍦嗚鐭╁舰鑳跺泭) -->
+                <div class="modern-pill border-slate-300 font-bold text-slate-800 text-xs px-4 flex items-center gap-1.5 shadow-sm bg-white/80 shrink-0">
+                    <span id="dialogue-story-title" class="tracking-wide">鏁呬簨 1</span>
+                </div>
+
+                <!-- 鍙充晶蹇嵎鎿嶄綔鍦嗗舰鎸夐挳 -->
+                <button onclick="toggleQuickActionsPopup(event)" class="w-6 h-6 rounded-full border border-slate-300 flex items-center justify-center bg-white/60 hover:bg-slate-100 active:scale-95 transition-all shadow-sm cursor-pointer relative" title="蹇嵎鎿嶄綔">
+                    <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <circle cx="12" cy="5" r="1.5"/>
+                        <circle cx="12" cy="12" r="1.5"/>
+                        <circle cx="12" cy="19" r="1.5"/>
+                    </svg>
+                    <!-- 鎮诞寰爣鎸囩ず绗?-->
+                    <span class="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                    </span>
+                </button>
+            </header>
+
+            <!-- 涓嬫柟涓夋爮涓昏宸ヤ綔鐗堝浘 (璐┛鍏ㄩ珮锛屼笂鏂规槸璐┛鍏ㄥ鐨勯《閮ㄦ爮锛屼晶杈规爮鏈€涓婃柟灏辨槸椤堕儴鏍? -->
+            <div class="flex-1 w-full flex overflow-hidden">
+                
+                <!-- 1. 宸?涓晶瀵硅瘽鍒涗綔涓绘澘 (Flex-1) -->
+                <div class="flex-1 flex flex-col h-full overflow-hidden relative">
+
+                <!-- 瀵硅瘽婊氬姩鍖哄煙 -->
+                <div id="dialogue-chat-area" class="flex-1 overflow-y-auto px-10 py-6 space-y-6 no-scrollbar bg-transparent">
+                    <!-- 鍔ㄦ€佽閰嶇敤鎴峰拰AI娑堟伅 -->
+                </div>
+
+                <!-- 搴曢儴杈撳叆妗嗗尯鍩?-->
+                <footer class="p-6 shrink-0 w-full max-w-[720px] mx-auto relative">
+                    <div id="dialogue-input-container" class="w-full relative"></div>
+                </footer>
+            </div>
+
+            <!-- 2. 鍙充晶璁惧畾闆嗕晶杈规爮 -->
+            <div id="dialogue-right-sidebar" class="w-72 flex flex-col h-full bg-white/30 backdrop-blur-md border-l border-slate-200/80 transition-all duration-300 overflow-hidden shrink-0">
+                <div class="w-72 h-full flex flex-col overflow-hidden shrink-0" id="sidebar-content">
+                    
+                    <!-- ========== 涓婂崐鍖猴細璁惧畾鏉＄洰娴忚 ========== -->
+                    <div class="flex-1 flex flex-col overflow-hidden min-h-0">
+                        
+                        <!-- 鍒囬〉澶?< 浜嬩欢 > -->
+                        <div class="flex items-center justify-center gap-3 shrink-0 px-4 pt-4 pb-2">
+                            <button onclick="switchSidebarCategory(-1)" class="modern-circle cursor-pointer active:scale-95 hover:bg-slate-100" style="width:20px;height:20px;border-radius:10px;" title="涓婁竴鍒嗙被">
+                                <svg class="w-2.5 h-2.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                            </button>
+                            <span id="sidebar-category-label" class="text-[11px] font-bold text-slate-700 tracking-wider select-none min-w-[48px] text-center">浜嬩欢</span>
+                            <button onclick="switchSidebarCategory(1)" class="modern-circle cursor-pointer active:scale-95 hover:bg-slate-100" style="width:20px;height:20px;border-radius:10px;" title="涓嬩竴鍒嗙被">
+                                <svg class="w-2.5 h-2.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                            </button>
+                        </div>
+
+                        <!-- 鎼滅储妗?(璁捐Token: 楂樺害24px, 鍦嗚12px) -->
+                        <div class="px-4 pb-2 shrink-0">
+                            <div class="w-full flex items-center px-2.5 gap-2 bg-white border border-slate-200 shadow-sm" style="height: var(--global-h); border-radius: var(--global-radius);">
+                                <svg class="w-3 h-3 text-slate-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                                <input type="text" id="sidebar-search" placeholder="鎼滅储..." oninput="filterSidebarItems()" class="w-full h-full bg-transparent border-0 outline-none text-[10px] font-medium text-slate-600 placeholder-slate-300" />
+                            </div>
+                        </div>
+
+                        <!-- 鏉＄洰鍒楄〃 (鍙粴鍔? -->
+                        <div id="sidebar-item-list" class="flex-1 overflow-y-auto no-scrollbar px-4 space-y-2 pb-2">
+                            <!-- JS 鍔ㄦ€佽閰嶅綋鍓嶅垎绫荤殑鏉＄洰 -->
+                        </div>
+                    </div>
+
+                    <!-- ========== 鍥哄畾瀹炵嚎鍒嗗壊 ========== -->
+                    <div class="w-full shrink-0 px-4">
+                        <div class="w-full h-px bg-slate-300"></div>
+                    </div>
+
+                    <!-- ========== 涓嬪崐鍖猴細AI瀵硅瘽寮忚瀹氱紪杈?========== -->
+                    <div class="flex-1 flex flex-col overflow-hidden min-h-0">
+                        
+                        <!-- 瀵硅瘽娑堟伅鍖?(鍙粴鍔? -->
+                        <div id="sidebar-chat-list" class="flex-1 overflow-y-auto no-scrollbar px-4 py-3 space-y-3">
+                            <!-- 绀轰緥鐢ㄦ埛娑堟伅 -->
+                            <div class="flex items-start gap-2 justify-end w-full">
+                                <div class="flex flex-col items-end max-w-[85%]">
+                                    <div class="p-2.5 bg-slate-100/70 border border-slate-200 text-[10px] font-medium text-slate-600 leading-relaxed text-left shadow-sm" style="border-radius: var(--global-radius);">
+                                        鍒涘缓涓€涓柊瑙掕壊銆?                                    </div>
+                                </div>
+                                <div class="w-5 h-5 rounded-full bg-slate-200 text-slate-600 font-bold text-[9px] flex items-center justify-center shrink-0 border border-slate-300 mt-0.5 shadow-sm select-none">U</div>
+                            </div>
+                            <!-- 绀轰緥AI娑堟伅 -->
+                            <div class="flex items-start gap-2 w-full">
+                                <div class="w-5 h-5 rounded-full bg-blue-50 text-blue-500 font-bold text-[9px] flex items-center justify-center shrink-0 border border-blue-200 mt-0.5 shadow-sm select-none">A</div>
+                                <div class="flex flex-col items-start max-w-[85%]">
+                                    <div class="p-2.5 bg-white border border-slate-200 text-[10px] font-medium text-slate-600 leading-relaxed text-left shadow-sm" style="border-radius: var(--global-radius);">
+                                        鎿嶄綔宸插畬鎴愩€?                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 搴曢儴杈撳叆妗?(绛夋瘮渚嬬缉鏀剧揣鍑戠増) -->
+                        <div class="px-3 pb-3 pt-1 shrink-0">
+                            <div id="sidebar-input-container" class="w-full relative"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. 鐙珛鑺傜偣鏉″垪锛堝惈鈮℃姌鍙犳寜閽級锛屽缁堝彲瑙?-->
+            <div id="node-bar-column" class="w-8 h-full shrink-0 flex flex-col items-center bg-white/10 select-none relative">
+                <!-- 鈮?鎶樺彔/灞曞紑鎸夐挳 (浣嶄簬鑺傜偣鏉′笂鏂? -->
+                <button onclick="toggleRightSidebar()" id="sidebar-toggle-btn" class="w-6 h-6 flex items-center justify-center rounded cursor-pointer hover:bg-slate-100 transition-colors mt-2 mb-3 shrink-0" title="灞曞紑/鎶樺彔渚ц竟鏍? style="border-radius: var(--global-radius);">
+                    <svg class="w-3.5 h-3.5 text-slate-400 hover:text-slate-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                </button>
+
+                <!-- 鑺傜偣鏉℃湰浣?-->
+                <div id="node-bar-track" class="flex-1 flex flex-col items-center w-full px-0 py-1 gap-0 overflow-hidden relative">
+                    <!-- JS 鍔ㄦ€佺敓鎴愯妭鐐瑰渾鐐癸紝鑺傜偣闂磋窛姝ｆ瘮浜嶢I鍥炲闀垮害 -->
+                </div>
+            </div>
+            
+            </div> <!-- End of dialogue work area row -->
+        </div> <!-- End of dialogue-view-wrapper -->
+
+            <!-- @ 寮曠敤璁惧畾鎮诞寮圭獥 (鍚孧odel閫夋嫨寮圭獥鏍峰紡) -->
+            <div id="setting-ref-popup" class="hidden fixed z-50 w-56 bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/80 p-3 shadow-xl flex flex-col gap-1.5 text-left">
+                <div class="flex items-center gap-2 px-1">
+                    <svg class="w-3 h-3 text-slate-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                    <input type="text" id="setting-ref-search" placeholder="鏌ユ壘璁惧畾..." class="w-full bg-transparent border-0 outline-none text-[11px] font-medium text-slate-600 placeholder-slate-300" oninput="filterSettingRefItems()" />
+                </div>
+                <div class="h-px bg-slate-200/60"></div>
+                <div id="setting-ref-list" class="max-h-40 overflow-y-auto no-scrollbar space-y-0.5">
+                    <!-- JS 鍔ㄦ€佽閰嶅彲寮曠敤鐨勮瀹氭潯鐩?-->
+                </div>
+            </div>
+
+            <!-- @ 寮曠敤瑙掕壊缇よ亰鎮诞寮圭獥 -->
+            <div id="chat-at-popup" class="hidden fixed z-50 w-56 bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/80 p-3 shadow-xl flex flex-col gap-1.5 text-left animate-fade-in">
+                <div class="flex items-center gap-2 px-1">
+                    <svg class="w-3 h-3 text-slate-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                    <input type="text" id="chat-at-search" placeholder="鏌ユ壘瑙掕壊..." class="w-full bg-transparent border-0 outline-none text-[11px] font-medium text-slate-600 placeholder-slate-300" oninput="filterChatAtItems()" />
+                </div>
+                <div class="h-px bg-slate-200/60 my-0.5"></div>
+                <div id="chat-at-list" class="max-h-40 overflow-y-auto no-scrollbar space-y-0.5">
+                    <!-- JS 鍔ㄦ€佽閰嶈鑹插垪琛?-->
+                </div>
+            </div>
+
+            <!-- Deduction Level Floating Popover Panel -->
+            <div id="deduction-level-popup" class="hidden fixed z-[60] w-48 bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/80 p-2 shadow-xl flex flex-col gap-1 text-left">
+                <!-- Fast -->
+                <div class="dl-popup-option flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer" data-level="Fast">
+                    <div class="flex items-center gap-1.5">
+                        <svg class="dl-check-icon w-3 h-3 text-blue-500 shrink-0 hidden" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        <div class="flex flex-col">
+                            <span class="text-[10px] font-bold text-slate-800">Fast</span>
+                            <span class="text-[8.5px] text-slate-400 font-medium mt-0.5">蹇€熸帹婕?/span>
+                        </div>
+                    </div>
+                </div>
+                <!-- Standard -->
+                <div class="dl-popup-option flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer" data-level="Standard">
+                    <div class="flex items-center gap-1.5">
+                        <svg class="dl-check-icon w-3 h-3 text-blue-500 shrink-0 hidden" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        <div class="flex flex-col">
+                            <span class="text-[10px] font-bold text-slate-800">Standard</span>
+                            <span class="text-[8.5px] text-slate-400 font-medium mt-0.5">甯歌娴佺▼</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- Extended -->
+                <div class="dl-popup-option flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer" data-level="Extended">
+                    <div class="flex items-center gap-1.5">
+                        <svg class="dl-check-icon w-3 h-3 text-blue-500 shrink-0 hidden" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        <div class="flex flex-col">
+                            <span class="text-[10px] font-bold text-slate-800">Extended</span>
+                            <span class="text-[8.5px] text-slate-400 font-medium mt-0.5">闀块摼楠岃瘉</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 鎸傝浇璁惧畾闆嗘偓娴脊绐?(鍚孧odel鍙婂紩鐢ㄨ瀹氬脊绐楁牱寮忥紝鍩轰簬杈圭晫鍒ゅ畾鏈€澶т晶绌洪棿鏅鸿兘灞曞紑) -->
+            <div id="collection-mount-popup" class="hidden fixed z-50 w-56 bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/80 p-3 shadow-xl flex flex-col gap-1.5 text-left">
+                <div class="px-2 py-1 text-[9px] font-bold text-slate-400 uppercase tracking-wider select-none">閫夋嫨鎸傝浇璁惧畾闆?/div>
+                <div class="h-px bg-slate-200/60 my-0.5"></div>
+                <div id="collection-mount-list" class="space-y-0.5 max-h-40 overflow-y-auto no-scrollbar">
+                    <!-- JS 鍔ㄦ€佽閰嶈瀹氶泦鏉＄洰 -->
+                </div>
+            </div>
+
+            <!-- 蹇嵎鎿嶄綔鎮诞闈㈡澘 (Sleek Glassmorphic Design) -->
+            <div id="quick-actions-popup" class="hidden fixed z-50 w-60 bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/80 p-3.5 shadow-xl flex flex-col gap-3 text-left">
+                <!-- User Profile & DB Section -->
+                <div id="qa-user-section" class="flex flex-col gap-1.5 p-2 bg-slate-50/60 border border-slate-101 rounded-xl">
+                    <div class="flex items-center gap-2">
+                        <div class="w-7 h-7 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center text-[11px] font-bold text-slate-600 select-none shadow-sm" id="qa-avatar">
+                            G
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-[10px] font-bold text-slate-700" id="qa-username">娓稿璐︽埛 (Guest)</span>
+                            <span class="text-[8px] text-slate-400 font-medium" id="qa-db-status">鏁版嵁搴撴湭瀵煎叆</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="h-px bg-slate-200/60 my-0.5"></div>
+
+                <!-- 1. 蹇嵎妯″瀷閫夋嫨 (Quick Model Select) 鈥?鍔ㄦ€佹覆鏌撹嚜瀹氫箟妯″瀷 -->
+                <div class="flex flex-col gap-1">
+                    <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider px-1">蹇嵎妯″瀷璁剧疆</span>
+                    <div id="qa-model-list" class="flex flex-col gap-0.5"></div>
+                </div>
+
+                <div class="h-px bg-slate-200/60 my-0.5"></div>
+
+                <!-- 2. 鏁版嵁搴撳鍏ヤ笌瀵煎嚭 (Import & Export Actions) -->
+                <div class="flex flex-col gap-1.5">
+                    <!-- 瀵煎叆鏁版嵁搴撴寜閽?-->
+                    <button id="qa-import-btn" onclick="handleQAImport()" class="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100/80 active:scale-[0.98] border border-blue-200/60 text-[10px] font-bold text-blue-600 transition-all" style="border-radius: var(--global-radius);">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>瀵煎叆鏁版嵁搴?(鐧诲綍)</span>
+                    </button>
+
+                    <!-- 瀵煎嚭鏁版嵁搴撴寜閽?(浠呭湪宸茬櫥褰曟椂鍚敤) -->
+                    <button id="qa-export-btn" onclick="handleQAExport()" disabled class="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-400 border border-slate-200/40 text-[10px] font-bold transition-all cursor-not-allowed" style="border-radius: var(--global-radius);">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m-3-3l3 3m0 0l3-3m-3 3V3m0 18a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>瀵煎嚭鏁版嵁搴?(闇€鐧诲綍)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ================= 骞冲彴绯荤粺璁剧疆鐣岄潰鍖呰瀹瑰櫒 (Settings View) ================= -->
+            <div id="settings-view-wrapper" class="hidden w-full h-full pt-4 px-6 pb-6 flex-col overflow-hidden select-none">
+                <!-- ================= TOP HEADER (Title and Close Button) ================= -->
+                <header class="flex items-center justify-between shrink-0 border-b border-slate-200/80 pb-3.5 mb-4">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-blue-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        </svg>
+                        <h1 class="text-sm font-bold text-slate-800 tracking-wide">Settings</h1>
+                    </div>
+                    <!-- Close Button (matches mockup's circle on right) -->
+                    <button onclick="setInterfaceState('home')" class="w-6 h-6 rounded-full border border-slate-300 flex items-center justify-center bg-white/60 hover:bg-slate-100 active:scale-95 transition-all shadow-sm" title="鍏抽棴璁剧疆">
+                        <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </header>
+
+                <!-- ================= MAIN LAYOUT (Left and Right Columns) ================= -->
+                <div class="flex-1 grid grid-cols-12 gap-6 overflow-hidden">
+                    
+                    <!-- ================= LEFT PANEL (col-span-4) ================= -->
+                    <div class="col-span-4 flex flex-col gap-4 h-full overflow-hidden">
+                        
+                        <!-- 1. Settings Menu Box -->
+                        <div class="flex-1 border border-slate-200/80 rounded-2xl bg-white/50 backdrop-blur-md p-3 flex flex-col overflow-hidden shadow-sm">
+                            <!-- Inner scrollable list -->
+                            <div class="flex-1 overflow-y-auto no-scrollbar space-y-1.5 pr-1" id="settings-menu-list">
+                                <!-- Category 1: 妯″瀷璁剧疆 -->
+                                <div class="space-y-0.5">
+                                    <div class="settings-nav-item root active" data-tab="model-settings" onclick="switchSettingsTab('model-settings')">
+                                        <span class="truncate">妯″瀷璁剧疆</span>
+                                    </div>
+                                    <div class="settings-nav-item child" data-tab="model-providers" onclick="switchSettingsTab('model-providers')">
+                                        <span class="truncate">Providers</span>
+                                    </div>
+                                    <div class="settings-nav-item child" data-tab="model-hyperparams" onclick="switchSettingsTab('model-hyperparams')">
+                                        <span class="truncate">妯″瀷瓒呭弬</span>
+                                    </div>
+                                    <div class="settings-nav-item child" data-tab="model-sysprompt" onclick="switchSettingsTab('model-sysprompt')">
+                                        <span class="truncate">鍏ㄥ眬绯荤粺鎻愮ず璇?/span>
+                                    </div>
+                                    <div class="settings-nav-item child" data-tab="module-prompts" onclick="switchSettingsTab('module-prompts')">
+                                        <span class="truncate">妯″潡鎻愮ず璇嶉厤缃?/span>
+                                    </div>
+                                </div>
+
+                                <!-- Category 2: 鎵ц璁剧疆 -->
+                                <div class="space-y-0.5 pt-1">
+                                    <div class="settings-nav-item root" data-tab="exec-settings" onclick="switchSettingsTab('exec-settings')">
+                                        <span class="truncate">鎵ц璁剧疆</span>
+                                    </div>
+                                    
+                                    <!-- 鎺ㄦ紨鑺傜偣璁剧疆 -->
+                                    <div class="settings-nav-item child" data-tab="deduction-nodes" onclick="switchSettingsTab('deduction-nodes')">
+                                        <span class="truncate">鎺ㄦ紨鑺傜偣璁剧疆</span>
+                                    </div>
+                                    <div class="settings-nav-item sub-child" data-tab="node-planning" onclick="switchSettingsTab('node-planning')">
+                                        <span class="truncate">瑙勫垝</span>
+                                    </div>
+                                    <div class="settings-nav-item sub-child" data-tab="node-deduction" onclick="switchSettingsTab('node-deduction')">
+                                        <span class="truncate">婕旂粠</span>
+                                    </div>
+                                    <div class="settings-nav-item sub-child" data-tab="node-explanation" onclick="switchSettingsTab('node-explanation')">
+                                        <span class="truncate">瑙ｉ噴</span>
+                                    </div>
+                                    <div class="settings-nav-item sub-child" data-tab="node-correction" onclick="switchSettingsTab('node-correction')">
+                                        <span class="truncate">淇</span>
+                                    </div>
+                                    
+                                    <!-- 鍐欎綔璁剧疆 -->
+                                    <div class="settings-nav-item child" data-tab="writing-settings" onclick="switchSettingsTab('writing-settings')">
+                                        <span class="truncate">鍐欎綔璁剧疆</span>
+                                    </div>
+                                    <div class="settings-nav-item sub-child" data-tab="writing-model" onclick="switchSettingsTab('writing-model')">
+                                        <span class="truncate">妯″瀷</span>
+                                    </div>
+                                    <div class="settings-nav-item sub-child" data-tab="writing-style" onclick="switchSettingsTab('writing-style')">
+                                        <span class="truncate">鍐欎綔椋庢牸</span>
+                                    </div>
+                                    <div class="settings-nav-item sub-child" data-tab="writing-length" onclick="switchSettingsTab('writing-length')">
+                                        <span class="truncate">瀛楁暟涓庡垎娈垫帶鍒?/span>
+                                    </div>
+                                    <div class="settings-nav-item sub-child" data-tab="writing-prefs" onclick="switchSettingsTab('writing-prefs')">
+                                        <span class="truncate">鍒涗綔鍋忓ソ</span>
+                                    </div>
+
+                                    <!-- 鑱婂ぉ璁剧疆 -->
+                                    <div class="settings-nav-item child" data-tab="chat-settings" onclick="switchSettingsTab('chat-settings')">
+                                        <span class="truncate">鑱婂ぉ璁剧疆</span>
+                                    </div>
+                                    <div class="settings-nav-item sub-child" data-tab="chat-model" onclick="switchSettingsTab('chat-model')">
+                                        <span class="truncate">妯″瀷</span>
+                                    </div>
+                                    <div class="settings-nav-item sub-child" data-tab="chat-integration" onclick="switchSettingsTab('chat-integration')">
+                                        <span class="truncate">闆嗘垚搴?/span>
+                                    </div>
+                                    <div class="settings-nav-item sub-child" data-tab="chat-group" onclick="switchSettingsTab('chat-group')">
+                                        <span class="truncate">缇よ亰璁剧疆</span>
+                                    </div>
+
+                                    <!-- 鍔╂墜璁剧疆 -->
+                                    <div class="settings-nav-item child" data-tab="assistant-settings" onclick="switchSettingsTab('assistant-settings')">
+                                        <span class="truncate">鍔╂墜璁剧疆</span>
+                                    </div>
+                                    <div class="settings-nav-item sub-child" data-tab="assistant-model" onclick="switchSettingsTab('assistant-model')">
+                                        <span class="truncate">妯″瀷</span>
+                                    </div>
+                                    <div class="settings-nav-item sub-child" data-tab="assistant-behavior" onclick="switchSettingsTab('assistant-behavior')">
+                                        <span class="truncate">琛屼负</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 2. User & Info Box -->
+                        <div class="h-[210px] shrink-0 border border-slate-200/80 rounded-2xl bg-white/50 backdrop-blur-md p-4 flex flex-col justify-between shadow-sm">
+                            <!-- User Profile & Overview Grid -->
+                            <div class="grid grid-cols-2 gap-3 flex-1 mb-3">
+                                
+                                <!-- Left: Profile & Creation Info -->
+                                <div class="flex flex-col gap-2.5 justify-between">
+                                    <!-- Top: Profile (Avatar + Username) -->
+                                    <div class="flex items-center gap-2">
+                                        <div id="settings-avatar" class="w-8 h-8 rounded-full bg-blue-100 border border-blue-200 flex items-center justify-center font-bold text-blue-600 text-xs shadow-sm">
+                                            G
+                                        </div>
+                                        <div class="flex flex-col min-w-0">
+                                            <span id="settings-username" class="text-[10px] font-bold text-slate-800 truncate">娓稿璐︽埛</span>
+                                            <span class="text-[8px] text-slate-400 font-medium leading-none">鍦ㄧ嚎鐘舵€?/span>
+                                        </div>
+                                    </div>
+                                    <!-- Bottom: Creation Overview Card -->
+                                    <div class="flex-1 p-2 bg-slate-50/80 border border-slate-200/50 rounded-xl flex flex-col justify-between">
+                                        <div class="text-[8px] font-bold text-slate-400 uppercase tracking-wider">鍒涗綔姒傝</div>
+                                        <div class="flex flex-col gap-0.5 mt-1">
+                                            <div class="flex justify-between items-center text-[9px] text-slate-600">
+                                                <span>璁惧畾闆?</span>
+                                                <span class="font-bold text-slate-800" id="settings-collections-count">2</span>
+                                            </div>
+                                            <div class="flex justify-between items-center text-[9px] text-slate-600">
+                                                <span>鐙珛鏁呬簨:</span>
+                                                <span class="font-bold text-slate-800" id="settings-stories-count">5</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Right: Usage Overview Card (Tall, spans full height) -->
+                                <div class="p-2 bg-slate-50/80 border border-slate-200/50 rounded-xl flex flex-col justify-between">
+                                    <div>
+                                        <div class="text-[8px] font-bold text-slate-400 uppercase tracking-wider">娑堣€楁瑙?/div>
+                                        <div class="flex flex-col gap-1 mt-1.5">
+                                            <div class="flex flex-col">
+                                                <span class="text-[8px] text-slate-400">API 鑰楅噺</span>
+                                                <span class="text-[11px] font-bold text-slate-700" id="settings-token-words">12.5k 瀛?/span>
+                                            </div>
+                                            <div class="flex flex-col">
+                                                <span class="text-[8px] text-slate-400">鍓╀綑棰濆害</span>
+                                                <span class="text-[11px] font-bold text-emerald-600">92%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="h-1 w-full bg-slate-200 rounded-full overflow-hidden">
+                                        <div class="h-full bg-emerald-500 rounded-full" style="width: 92%"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Account & DB Buttons -->
+                            <div class="flex flex-col gap-2 shrink-0">
+                                <button id="settings-login-btn" onclick="handleQAImport(); syncSettingsUserProfile();" class="w-full h-8 flex items-center justify-center gap-1.5 px-3 bg-blue-50 hover:bg-blue-100 active:scale-[0.98] border border-blue-200/60 text-[10px] font-bold text-blue-600 transition-all rounded-xl shadow-sm">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                                    </svg>
+                                    <span>鐧诲綍 / 绠＄悊璐﹀彿</span>
+                                </button>
+                                <button id="settings-logout-btn" onclick="handleSettingsLogout()" class="w-full h-8 flex items-center justify-center gap-1.5 px-3 bg-slate-50 hover:bg-slate-100 active:scale-[0.98] border border-slate-200 text-[10px] font-bold text-slate-600 transition-all rounded-xl">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+                                    </svg>
+                                    <span>鐧诲嚭 / 瀵煎嚭鏁版嵁搴?/span>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- ================= RIGHT PANEL (col-span-8) ================= -->
+                    <div class="col-span-8 border border-slate-200/80 rounded-2xl bg-white/50 backdrop-blur-md p-6 flex flex-col overflow-hidden shadow-sm h-full relative">
+                        <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2 select-none" id="detail-panel-title">
+                            璇︾粏璁剧疆闈㈡澘
+                        </h2>
+                        
+                        <div id="detail-panel-content" class="flex-1 overflow-y-auto no-scrollbar pr-1">
+                            <!-- Dynamically loaded settings forms will go here -->
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+    </main>
+
+    <script type="module" src="js/main.js"></script>
+<script type="module">
+try {
+    const results = [];
+    const log = (msg) => { results.push(msg); console.log(msg); };
+    
+    // Wait for DOMContentLoaded
+    if (document.readyState === 'loading') {
+        await new Promise(r => document.addEventListener('DOMContentLoaded', r));
+    }
+    
+    log('Document readyState: ' + document.readyState);
+    log('Body classes: ' + document.body.className);
+    
+    // Check DOM elements
+    const ids = ['main-content-wrapper', 'sidebar', 'home-input-container', 'stories-list', 
+                 'edit-modal-overlay', 'dialogue-view-wrapper', 'collection-edit-wrapper'];
+    for (const id of ids) {
+        const el = document.getElementById(id);
+        log(el ? 'FOUND: #' + id + ' display=' + getComputedStyle(el).display : 'MISSING: #' + id);
+    }
+    
+    // Check for JS errors by trying to load main.js
+    log('Loading main.js...');
+    await import('./js/main.js');
+    log('main.js loaded OK');
+    
+    // Wait a bit for init
+    await new Promise(r => setTimeout(r, 2000));
+    
+    // Check again after init
+    log('After init:');
+    for (const id of ids) {
+        const el = document.getElementById(id);
+        log(el ? 'FOUND: #' + id + ' display=' + getComputedStyle(el).display : 'MISSING: #' + id);
+    }
+    
+    // Check sidebar content
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) log('Sidebar children: ' + sidebar.children.length);
+    
+    // Show results overlay
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;overflow:auto;background:rgba(15,23,42,0.95);color:#e2e8f0;font:11px/1.5 monospace;padding:20px;z-index:99999;';
+    overlay.innerHTML = '<h2 style="color:#fbbf24;margin-bottom:10px">DIAG Results</h2>' + results.map(r => {
+        const color = r.includes('FOUND') ? '#4ade80' : r.includes('MISSING') ? '#f87171' : '#60a5fa';
+        return '<div style="color:' + color + '">' + r + '</div>';
+    }).join('');
+    document.body.appendChild(overlay);
+} catch(e) {
+    document.body.innerHTML = '<pre style="color:red;padding:20px">ERROR: ' + e.message + '\n' + e.stack + '</pre>';
+}
+</script>
+</body>
+</html>
+

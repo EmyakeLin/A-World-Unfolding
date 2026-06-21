@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>诊断</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script src="kg-engine.js"></script>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="state-home flex h-screen w-full overflow-hidden select-none">
+<div id="diag" style="position:fixed;top:0;left:0;right:0;bottom:0;overflow:auto;background:#0f172a;color:#e2e8f0;font:12px/1.6 monospace;padding:20px;z-index:99999;"></div>
+<script type="module">
+const d = document.getElementById('diag');
+const log = (msg, color='#e2e8f0') => { d.innerHTML += `<div style="color:${color}">${msg}</div>`; console.log(msg); };
+const ok = (msg) => log('✅ ' + msg, '#4ade80');
+const fail = (msg) => log('❌ ' + msg, '#f87171');
+const info = (msg) => log('ℹ️ ' + msg, '#60a5fa');
+
+// Capture all errors
+window.onerror = (msg, src, line, col, err) => { fail(`GLOBAL ERROR: ${msg} at ${src}:${line}:${col}`); };
+window.addEventListener('unhandledrejection', (e) => { fail(`UNHANDLED REJECTION: ${e.reason}`); });
+
+try {
+    info('Loading main.js...');
+    
+    // Step by step like main.js does
+    const { DB, _allLoreSets, _allStories, _allChats } = await import('./js/core/db.js');
+    ok('1. db.js loaded');
+    
+    const { seedDatabase } = await import('./js/core/models.js');
+    ok('2. models.js loaded');
+    
+    const { callLLM } = await import('./js/core/api.js');
+    ok('3. api.js loaded');
+    
+    const { LORESET_TOOLS } = await import('./js/core/tools.js');
+    ok('4. tools.js loaded');
+    
+    const { executeTool } = await import('./js/engine/tool-executor.js');
+    ok('5. tool-executor.js loaded');
+    
+    const { createWrappedExecuteTool, UnderstandingJSON, ExpandNodes, UJSON_cache } = await import('./js/engine/ujson.js');
+    ok('6. ujson.js loaded');
+    
+    const { deductionBridge } = await import('./js/engine/deduction-bridge.js');
+    ok('7. deduction-bridge.js loaded');
+    
+    const { runTick } = await import('./js/engine/tick-runner.js');
+    ok('8. tick-runner.js loaded');
+    
+    info('Loading app.js (imports all UI modules)...');
+    await import('./js/ui/app.js');
+    ok('9. app.js loaded (all UI modules)');
+    
+    info('Running init...');
+    
+    await DB.open();
+    ok('10. DB opened');
+    
+    await seedDatabase();
+    ok('11. seedDatabase done');
+    
+    const loresets = await DB.loresets.getAll();
+    const stories = await DB.stories.getAll();
+    const chats = await DB.chatSessions.getAll();
+    ok(`12. Data: ${loresets.length} loresets, ${stories.length} stories, ${chats.length} chats`);
+    
+    _allLoreSets.length = 0; _allLoreSets.push(...loresets);
+    _allStories.length = 0; _allStories.push(...stories);
+    _allChats.length = 0; _allChats.push(...chats);
+    ok('13. Arrays synced');
+    
+    // Set globals
+    window.DB = DB;
+    window.callLLM = callLLM;
+    window.LORESET_TOOLS = LORESET_TOOLS;
+    window.executeTool = executeTool;
+    window.wrappedExecuteTool = createWrappedExecuteTool(executeTool);
+    window.UnderstandingJSON = UnderstandingJSON;
+    window.ExpandNodes = ExpandNodes;
+    window.UJSON_cache = UJSON_cache;
+    window._deductionBridge = deductionBridge;
+    window.runTick = runTick;
+    ok('14. Globals set');
+    
+    // Check what's on window
+    const checks = ['loadDataFromDB', 'renderSidebarCollections', 'renderSidebarIndependentStories', 
+                     'setInterfaceState', 'parseHash', 'initInputBoxForPage', 'renderStories',
+                     'initChatView', 'renderChatView', 'loadCollection', 'enterCollectionEdit',
+                     'loadStoryDialogue', 'renderDialogueArea', 'initSettingsView'];
+    info('15. Checking window functions...');
+    for (const fn of checks) {
+        if (typeof window[fn] === 'function') ok(`  window.${fn}: OK`);
+        else fail(`  window.${fn}: MISSING`);
+    }
+    
+    if (typeof window.loadDataFromDB === 'function') {
+        await window.loadDataFromDB();
+        ok('16. loadDataFromDB done');
+    } else {
+        fail('16. loadDataFromDB not available');
+    }
+    
+    if (typeof window.renderSidebarCollections === 'function') {
+        window.renderSidebarCollections();
+        ok('17. renderSidebarCollections done');
+    } else {
+        fail('17. renderSidebarCollections not available');
+    }
+    
+    // Check DOM elements
+    info('18. Checking DOM elements...');
+    const domChecks = ['main-content-wrapper', 'sidebar', 'home-input-container', 'stories-list'];
+    for (const id of domChecks) {
+        const el = document.getElementById(id);
+        if (el) ok(`  #${id}: found (${el.tagName})`);
+        else fail(`  #${id}: NOT FOUND`);
+    }
+    
+    // Check CSS visibility
+    const mainWrapper = document.getElementById('main-content-wrapper');
+    if (mainWrapper) {
+        const style = getComputedStyle(mainWrapper);
+        info(`19. #main-content-wrapper display: ${style.display}`);
+    }
+    
+    log('<br><b style="color:#fbbf24">=== DIAGNOSTIC COMPLETE ===</b>');
+    
+} catch(e) {
+    fail('FATAL: ' + e.message);
+    fail('Stack: ' + (e.stack || '').split('\n').slice(0,5).join('<br>'));
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head><title>Module Test</title></head>
+<body>
+<h1>Module Load Test</h1>
+<div id="result"></div>
+<script type="module">
+const result = document.getElementById('result');
+function log(msg) { result.innerHTML += msg + '<br>'; console.log(msg); }
+
+try { log('1. Loading db.js...'); const m1 = await import('./js/core/db.js'); log('✅ db.js OK'); } catch(e) { log('❌ db.js: ' + e.message); }
+try { log('2. Loading models.js...'); const m2 = await import('./js/core/models.js'); log('✅ models.js OK'); } catch(e) { log('❌ models.js: ' + e.message); }
+try { log('3. Loading api.js...'); const m3 = await import('./js/core/api.js'); log('✅ api.js OK'); } catch(e) { log('❌ api.js: ' + e.message); }
+try { log('4. Loading tools.js...'); const m4 = await import('./js/core/tools.js'); log('✅ tools.js OK'); } catch(e) { log('❌ tools.js: ' + e.message); }
+try { log('5. Loading graph.js...'); const m5 = await import('./js/core/graph.js'); log('✅ graph.js OK'); } catch(e) { log('❌ graph.js: ' + e.message); }
+try { log('6. Loading system-prompts.js...'); await import('./js/prompts/system-prompts.js'); log('✅ system-prompts.js OK'); } catch(e) { log('❌ system-prompts.js: ' + e.message); }
+try { log('7. Loading tool-descriptions.js...'); await import('./js/prompts/tool-descriptions.js'); log('✅ tool-descriptions.js OK'); } catch(e) { log('❌ tool-descriptions.js: ' + e.message); }
+try { log('8. Loading ujson.js...'); await import('./js/engine/ujson.js'); log('✅ ujson.js OK'); } catch(e) { log('❌ ujson.js: ' + e.message); }
+try { log('9. Loading tool-executor.js...'); await import('./js/engine/tool-executor.js'); log('✅ tool-executor.js OK'); } catch(e) { log('❌ tool-executor.js: ' + e.message); }
+try { log('10. Loading pipeline-helpers.js...'); await import('./js/engine/pipeline-helpers.js'); log('✅ pipeline-helpers.js OK'); } catch(e) { log('❌ pipeline-helpers.js: ' + e.message); }
+try { log('11. Loading prompt-builders.js...'); await import('./js/prompts/prompt-builders.js'); log('✅ prompt-builders.js OK'); } catch(e) { log('❌ prompt-builders.js: ' + e.message); }
+try { log('12. Loading tick-runner.js...'); await import('./js/engine/tick-runner.js'); log('✅ tick-runner.js OK'); } catch(e) { log('❌ tick-runner.js: ' + e.message); }
+try { log('13. Loading deduction-bridge.js...'); await import('./js/engine/deduction-bridge.js'); log('✅ deduction-bridge.js OK'); } catch(e) { log('❌ deduction-bridge.js: ' + e.message); }
+try { log('14. Loading state.js...'); await import('./js/ui/state.js'); log('✅ state.js OK'); } catch(e) { log('❌ state.js: ' + e.message); }
+try { log('15. Loading model-manager.js...'); await import('./js/ui/utils/model-manager.js'); log('✅ model-manager.js OK'); } catch(e) { log('❌ model-manager.js: ' + e.message); }
+try { log('16. Loading dom-helpers.js...'); await import('./js/ui/utils/dom-helpers.js'); log('✅ dom-helpers.js OK'); } catch(e) { log('❌ dom-helpers.js: ' + e.message); }
+try { log('17. Loading input-box.js...'); await import('./js/ui/components/input-box.js'); log('✅ input-box.js OK'); } catch(e) { log('❌ input-box.js: ' + e.message); }
+try { log('18. Loading sidebar.js...'); await import('./js/ui/components/sidebar.js'); log('✅ sidebar.js OK'); } catch(e) { log('❌ sidebar.js: ' + e.message); }
+try { log('19. Loading modal.js...'); await import('./js/ui/components/modal.js'); log('✅ modal.js OK'); } catch(e) { log('❌ modal.js: ' + e.message); }
+try { log('20. Loading settings.js...'); await import('./js/ui/views/settings.js'); log('✅ settings.js OK'); } catch(e) { log('❌ settings.js: ' + e.message); }
+try { log('21. Loading dialogue.js...'); await import('./js/ui/views/dialogue.js'); log('✅ dialogue.js OK'); } catch(e) { log('❌ dialogue.js: ' + e.message); }
+try { log('22. Loading collection.js...'); await import('./js/ui/views/collection.js'); log('✅ collection.js OK'); } catch(e) { log('❌ collection.js: ' + e.message); }
+try { log('23. Loading home.js...'); await import('./js/ui/views/home.js'); log('✅ home.js OK'); } catch(e) { log('❌ home.js: ' + e.message); }
+try { log('24. Loading chat.js...'); await import('./js/ui/views/chat.js'); log('✅ chat.js OK'); } catch(e) { log('❌ chat.js: ' + e.message); }
+try { log('25. Loading app.js...'); await import('./js/ui/app.js'); log('✅ app.js OK'); } catch(e) { log('❌ app.js: ' + e.message); }
+
+log('<br>DONE');
+</script>
+</body>
+</html>

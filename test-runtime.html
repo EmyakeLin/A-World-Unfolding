@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head><title>Runtime Test</title></head>
+<body>
+<div id="result" style="font-family:monospace;padding:20px;"></div>
+<script type="module">
+const r = document.getElementById('result');
+const log = (msg) => { r.innerHTML += msg + '<br>'; console.log(msg); };
+
+// Test the actual main.js flow
+try {
+    log('Importing db.js...');
+    const { DB, _allLoreSets, _allStories, _allChats } = await import('./js/core/db.js');
+    log('✅ DB imported, opening...');
+    
+    await DB.open();
+    log('✅ DB opened');
+    
+    const { seedDatabase } = await import('./js/core/models.js');
+    await seedDatabase();
+    log('✅ seedDatabase done');
+    
+    const loresets = await DB.loresets.getAll();
+    const stories = await DB.stories.getAll();
+    log(`✅ Data loaded: ${loresets.length} loresets, ${stories.length} stories`);
+    
+    _allLoreSets.length = 0;
+    _allLoreSets.push(...loresets);
+    _allStories.length = 0;
+    _allStories.push(...stories);
+    
+    log('Importing state.js...');
+    const { state } = await import('./js/ui/state.js');
+    log('✅ state imported');
+    
+    log('Importing app.js (this loads all UI modules)...');
+    await import('./js/ui/app.js');
+    log('✅ app.js imported');
+    
+    log('Calling loadDataFromDB...');
+    if (typeof window.loadDataFromDB === 'function') {
+        await window.loadDataFromDB();
+        log('✅ loadDataFromDB done');
+    } else {
+        log('❌ loadDataFromDB not on window');
+    }
+    
+    log('Calling renderSidebarCollections...');
+    if (typeof window.renderSidebarCollections === 'function') {
+        window.renderSidebarCollections();
+        log('✅ renderSidebarCollections done');
+    } else {
+        log('❌ renderSidebarCollections not on window');
+    }
+    
+    log('<br><b>DONE - All OK</b>');
+} catch(e) {
+    log('❌ ERROR: ' + e.message);
+    log('Stack: ' + (e.stack || '').split('\n').slice(0,5).join('<br>'));
+}
+</script>
+</body>
+</html>

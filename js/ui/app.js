@@ -8,6 +8,7 @@ import { createWrappedExecuteTool, UnderstandingJSON, ExpandNodes, UJSON_cache }
 import { LORESET_SYSTEM_PROMPT } from '../prompts/system-prompts.js';
 import { TOOL_DESCRIPTIONS, USER_CONFIGURABLE_PROMPTS, refreshUserConfigurablePrompts } from '../prompts/tool-descriptions.js';
 import { deductionBridge } from '../engine/deduction-bridge.js';
+import { PopupBase } from './components/base/popup-base.js';
 import { getAllModels, getCustomModels, getDuplicateModelNames, getShortModelName } from './utils/model-manager.js';
 import { showToast, autoResizeTextarea, bindAutoResize, positionPopupSmart, copyText } from './utils/dom-helpers.js';
 import './components/sidebar.js';
@@ -20,6 +21,46 @@ import './views/chat.js';
 
 window.seedDatabase = seedDatabase;
 window.refreshUserConfigurablePrompts = refreshUserConfigurablePrompts;
+
+// PopupBase instances - 统一管理所有 popup 的显示/隐藏/点击外部关闭
+const quickActionsPopup = new PopupBase('quick-actions-popup');
+quickActionsPopup.register('[onclick*="toggleQuickActionsPopup"]');
+
+const settingRefPopup = new PopupBase('setting-ref-popup');
+settingRefPopup.register('[onclick*="openSettingRefPopup"]');
+
+const collectionMountPopup = new PopupBase('collection-mount-popup');
+collectionMountPopup.register('[onclick*="openCollectionMountPopup"]');
+
+const chatAtPopup = new PopupBase('chat-at-popup');
+chatAtPopup.register('[onclick*="openChatAtPopup"]');
+
+const storyOptionsPopup = new PopupBase('story-options-popup');
+storyOptionsPopup.register('.story-options-btn');
+
+// 统一的 toggle 函数
+window.toggleQuickActionsPopup = (e) => {
+    quickActionsPopup.toggle(e.currentTarget || e.target.closest('button'));
+    e.stopPropagation();
+};
+window.openSettingRefPopup = (e) => {
+    settingRefPopup.show(e.currentTarget);
+    if (typeof renderSettingRefList === 'function') renderSettingRefList();
+    e.stopPropagation();
+};
+window.openCollectionMountPopup = (e) => {
+    collectionMountPopup.show(e.currentTarget);
+    e.stopPropagation();
+};
+window.openChatAtPopup = (e) => {
+    chatAtPopup.toggle(e.currentTarget || e.target.closest('button'));
+    if (!chatAtPopup.el.classList.contains('hidden')) {
+        if (typeof renderChatAtList === 'function') renderChatAtList();
+        const searchInput = document.getElementById('chat-at-search');
+        if (searchInput) { searchInput.value = ''; searchInput.focus(); }
+    }
+    e.stopPropagation();
+};
 
 const wrappedExecuteTool = createWrappedExecuteTool(executeTool);
 window.selectedModelName = localStorage.getItem('global-active-model') || '自定义模型';
@@ -187,39 +228,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// click-outside 关闭已由 PopupBase.registerGlobalCloser() 统一处理
+// 仅保留 model-dropdown 和 creation-mode-drawer 的关闭逻辑
 document.addEventListener('click', (e) => {
     document.querySelectorAll('.model-dropdown').forEach(dropdown => {
         if (!dropdown.classList.contains('hidden') && !dropdown.contains(e.target) && !e.target.closest('.model-select-trigger')) {
             dropdown.classList.add('hidden');
         }
     });
-    const storyPopup = document.getElementById('story-options-popup');
-    if (storyPopup && !storyPopup.classList.contains('hidden') && !storyPopup.contains(e.target) && !e.target.closest('.story-options-btn')) {
-        storyPopup.classList.add('hidden');
-    }
-    const dlPopup = document.getElementById('deduction-level-popup');
-    if (dlPopup && !dlPopup.classList.contains('hidden') && !dlPopup.contains(e.target) && !e.target.closest('.thinking-level-option')) {
-        state.isDlPopupClicked = false;
-        if (state.dlPopupShowTimeout) clearTimeout(state.dlPopupShowTimeout);
-        if (state.dlPopupTimeout) clearTimeout(state.dlPopupTimeout);
-        dlPopup.classList.add('hidden');
-    }
-    const refPopup = document.getElementById('setting-ref-popup');
-    if (refPopup && !refPopup.contains(e.target) && !e.target.closest('[onclick*="openSettingRefPopup"]') && !e.target.closest('[title="引用设定"]')) {
-        refPopup.classList.add('hidden');
-    }
-    const mountPopup = document.getElementById('collection-mount-popup');
-    if (mountPopup && !mountPopup.contains(e.target) && !e.target.closest('[onclick*="openCollectionMountPopup"]') && !e.target.closest('[title="挂载设定集"]')) {
-        mountPopup.classList.add('hidden');
-    }
-    const qaPopup = document.getElementById('quick-actions-popup');
-    if (qaPopup && !qaPopup.contains(e.target) && !e.target.closest('[onclick*="toggleQuickActionsPopup"]')) {
-        qaPopup.classList.add('hidden');
-    }
-    const chatAtPopup = document.getElementById('chat-at-popup');
-    if (chatAtPopup && !chatAtPopup.contains(e.target) && !e.target.closest('#chat-at-btn') && !e.target.closest('[onclick*="openChatAtPopup"]')) {
-        chatAtPopup.classList.add('hidden');
-    }
 });
 
 document.addEventListener('DOMContentLoaded', function() {

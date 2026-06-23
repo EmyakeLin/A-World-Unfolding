@@ -215,7 +215,7 @@ h1, h2, h3, h4, h5, h6,
 }
 
 /* 侧边栏独立故事文字截断限制 */
-#sidebar-independent-container .sidebar-text {
+#sidebar-standalone-container .sidebar-text {
     max-width: 105px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -499,7 +499,7 @@ h1, h2, h3, h4, h5, h6,
 
 /* 所有的故事、设定集相关选项卡（及其分组标题）在折叠时完全平滑淡出，保持高度静态不发生任何垂直推挤与抖动 */
 #sidebar-collections-container,
-#sidebar-independent-container,
+#sidebar-standalone-container,
 .sidebar-group-title {
     opacity: 1;
     visibility: visible;
@@ -510,7 +510,7 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .sidebar-collapsed #sidebar-collections-container,
-.sidebar-collapsed #sidebar-independent-container,
+.sidebar-collapsed #sidebar-standalone-container,
 .sidebar-collapsed .sidebar-group-title {
     opacity: 0 !important;
     visibility: hidden !important;

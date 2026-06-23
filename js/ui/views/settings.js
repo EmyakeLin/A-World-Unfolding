@@ -1,6 +1,8 @@
 import { state } from '../state.js';
 import { DB } from '../../core/db.js';
 import { SettingsSaver } from '../components/base/settings-saver.js';
+import { getAllModels } from '../utils/model-manager.js';
+import { refreshUserConfigurablePrompts } from '../../prompts/tool-descriptions.js';
 
 const settingsTabContents = {
     'model-select': `

@@ -28,10 +28,11 @@ const crudHandlers = {
 
 export async function executeTool(toolName, args) {
   let setting = null;
+  let story = null;
   if (args.lore_path) {
     setting = await DB.loresets.getById(args.lore_path);
     if (!setting) {
-      const story = await DB.stories.getById(args.lore_path);
+      story = await DB.stories.getById(args.lore_path);
       if (story?.associatedLoreSetId) setting = await DB.loresets.getById(story.associatedLoreSetId);
     }
   }
@@ -101,7 +102,17 @@ export async function executeTool(toolName, args) {
       break;
     }
     case 'trace_versions': {
-      result = { success: true, message: '当前编辑的是设定集模板，无版本历史。版本查询仅在故事实例中可用。' };
+      if (!story) story = await DB.stories.getById(args.lore_path);
+      const inst = story?.instances?.characters?.[args.target_id]
+                || story?.instances?.scenes?.[args.target_id]
+                || story?.instances?.items?.[args.target_id];
+      if (inst?.versions?.length > 0) {
+        const count = args.count ?? 1;
+        const versions = count === 0 ? inst.versions : inst.versions.slice(-count - 1, -1);
+        result = { success: true, data: versions.length ? versions : inst.versions.slice(0, 1).map(v => ({ ...v, note: '仅初始版本' })) };
+      } else {
+        result = { success: true, message: '该实体无版本历史（仅存在于设定集模板中）' };
+      }
       break;
     }
     case 'trace_graph': {

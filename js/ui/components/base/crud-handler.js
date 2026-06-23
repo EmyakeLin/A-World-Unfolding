@@ -86,6 +86,14 @@ export class WorldviewCrud extends CrudHandler {
 
 export class EdgeCrud extends CrudHandler {
   constructor() { super('edge', 'worldview.edges'); }
+  add(setting, args, genId) {
+    const id = args.id || genId('edge', args.subject + '_' + args.object);
+    const entity = this.createEntity(id, args);
+    const collection = this.getCollection(setting);
+    if (Array.isArray(collection)) collection.push(entity);
+    else if (typeof collection === 'object') collection[id] = entity;
+    return entity;
+  }
   createEntity(id, args) {
     return { id, subject: args.subject, relation: args.relation, object: args.object };
   }
@@ -182,6 +190,14 @@ export class HistoryCrud extends CrudHandler {
 
 export class GeographyCrud extends CrudHandler {
   constructor() { super('geography', 'worldview.geography'); }
+  add(setting, args, genId) {
+    const id = args.id || genId('node', args.name);
+    const entity = this.createEntity(id, args);
+    const collection = this.getCollection(setting);
+    if (Array.isArray(collection)) collection.push(entity);
+    else if (typeof collection === 'object') collection[id] = entity;
+    return entity;
+  }
   createEntity(id, args) {
     return { id, name: args.name, content: { description: args.content?.description || '' }, neighbors: args.neighbors || [], layer: args.layer || 1, father: args.father || null };
   }

@@ -41,12 +41,12 @@ function initInputBoxForPage(pageType) {
             onSubmit: async (val) => {
                 if (!val.trim()) return;
                 const activeColName = document.querySelector('.active-collection-name')?.textContent || '设定集';
-                const matchKey = Object.keys(state.collectionsData).find(k => (state.collectionsData[k].displayName || state.collectionsData[k].title) === activeColName);
-                const loreSetId = matchKey ? state.collectionsData[matchKey]?.id : null;
+                const matchKey = Object.keys(state.loresetData).find(k => (state.loresetData[k].displayName || state.loresetData[k].title) === activeColName);
+                const loreSetId = matchKey ? state.loresetData[matchKey]?.id : null;
                 const newStory = createStory(val.trim(), loreSetId);
                 await DB.stories.put(newStory);
-                if (matchKey && state.collectionsData[matchKey]) {
-                    state.collectionsData[matchKey].stories.push({ id: newStory.id, name: newStory.title, rounds: 0, words: '0 events', desc: '' });
+                if (matchKey && state.loresetData[matchKey]) {
+                    state.loresetData[matchKey].stories.push({ id: newStory.id, name: newStory.title, rounds: 0, words: '0 events', desc: '' });
                 }
                 state.allStories.push({ id: newStory.id, name: newStory.title, type: loreSetId, rounds: 0, words: '0 events', desc: '' });
                 window.renderSidebarCollections();
@@ -124,10 +124,10 @@ function renderStories(fixedHeight = null) {
     sliced.forEach(story => {
         const li = document.createElement('div');
         li.className = 'flex items-center gap-2.5 transition-all duration-200 shrink-0';
-        const typeLabel = story.type !== 'independent'
-            ? (state.collectionsData[story.type]?.displayName || story.type)
+        const typeLabel = story.type !== 'standalone'
+            ? (state.loresetData[story.type]?.displayName || story.type)
             : '独立故事';
-        const displayType = story.type !== 'independent'
+        const displayType = story.type !== 'standalone'
             ? `<span class="text-[11px] text-slate-400 font-normal">in ${typeLabel}</span>`
             : '';
         li.innerHTML = `<div class="modern-box cursor-pointer hover:border-slate-300 hover:bg-white transition-all shadow-[0_1px_2px_rgba(0,0,0,0.01)] flex items-center justify-center px-3 max-w-[160px]" style="height: var(--global-h);" onclick="setInterfaceState('dialogue', '${story.name}')"><span class="text-[11px] text-slate-600 font-semibold truncate select-none">${story.name}</span></div>${displayType}`;
@@ -186,7 +186,7 @@ function submitChatLanding() {
         { role: "character", charId: state.selectedChatCharacters[0]?.id, content: characterIntroText, toolCalls: [], timestamp: new Date().toISOString() }
     ];
     DB.chatSessions.put(chatSession).catch(e => console.warn('ChatSession save failed', e));
-    state.storyDialogues[storyName] = [
+    state.storySessions[storyName] = [
         { sender: "user", text: textVal, isNew: true },
         {
             sender: "ai", text: characterIntroText,
@@ -207,7 +207,7 @@ function updateHash(pageState, name) {
     const stateToRoute = {
         'home': '/home', 'creating': '/creating', 'collection-overview': '/collection-overview',
         'collection-view': '/collection-view', 'collection-edit': '/collection-edit',
-        'independent-story-edit': '/independent-story-edit', 'dialogue': '/dialogue',
+        'standalone-story-edit': '/standalone-story-edit', 'dialogue': '/dialogue',
         'chat': '/chat', 'settings': '/settings'
     };
     const route = stateToRoute[pageState] || '/home';
@@ -235,20 +235,20 @@ async function setInterfaceState(pageState, nameOrCollectionName = '') {
         window.renderCollectionOverview();
     } else if (pageState === 'collection-view') {
         body.classList.add('state-collection-view');
-        const matchKey = Object.keys(state.collectionsData).find(k => {
-            const col = state.collectionsData[k];
+        const matchKey = Object.keys(state.loresetData).find(k => {
+            const col = state.loresetData[k];
             return (col.displayName || col.title) === nameOrCollectionName;
         });
         if (matchKey) window.loadCollection(matchKey);
     } else if (pageState === 'collection-edit') {
         body.classList.add('state-collection-edit');
         await window.enterCollectionEdit(nameOrCollectionName);
-    } else if (pageState === 'independent-story-edit') {
+    } else if (pageState === 'standalone-story-edit') {
         body.classList.add('state-collection-edit');
-        await window.enterIndependentStoryEdit(nameOrCollectionName);
+        await window.enterStandaloneStoryEdit(nameOrCollectionName);
     } else if (pageState === 'dialogue') {
         body.classList.add('state-dialogue');
-        state.currentSidebarStoryName = nameOrCollectionName;
+        state.currentSidebarStoryId = nameOrCollectionName;
         await window.loadStoryDialogue(nameOrCollectionName);
     } else if (pageState === 'chat') {
         body.classList.add('state-chat');
@@ -268,7 +268,7 @@ async function setInterfaceState(pageState, nameOrCollectionName = '') {
     if (state.inputBox) state.inputBox.init();
 
     window.renderSidebarCollections();
-    window.renderSidebarIndependentStories();
+    window.renderSidebarStandaloneStories();
     updateHash(pageState, nameOrCollectionName);
 }
 

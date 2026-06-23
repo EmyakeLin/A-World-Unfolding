@@ -72,12 +72,12 @@ code = code.replace(/window\.(\w+)\s*=\s*function\s+(\w+)\s*\(/g, 'function $2('
 
 // --- State replacements (word-boundary: not preceded by . or word char, not followed by word char) ---
 const stateVars = [
-    'activeStoryDialogue', 'activeStoryName', 'storyDialogues',
-    'sidebarDialogueHistories', 'currentSidebarStoryName',
-    'sidebarCategoryIndex', 'isSidebarCollapsed', 'editDialogueHistory',
-    '_currentSidebarSessionSource', '_currentSidebarSessionId',
-    'inputBox', 'sidebarInputBox', 'collectionsData',
-    'allStories', 'currentCollectionId',
+    'activeStoryMessages', 'activeStoryId', 'storySessions',
+    'sidebarSessions', 'currentSidebarStoryId',
+    'sidebarCategoryIndex', 'isSidebarCollapsed', 'editorSessions',
+    '_currentSidebarChatSource', '_currentSidebarChatId',
+    'inputBox', 'sidebarInputBox', 'loresetData',
+    'allStories', 'currentLoreSetId',
 ];
 for (const v of stateVars) {
     code = code.replace(new RegExp(`(?<![.\\w])${v}(?!\\w)`, 'g'), `state.${v}`);
@@ -103,7 +103,7 @@ code = code.replace(
 
 // Cross-module globals -> window.xxx
 const windowVars = [
-    'isEditingIndependentStory', 'initInputBoxForPage', 'editSettingNode',
+    'isEditingStandalone', 'initInputBoxForPage', 'editSettingNode',
     'setInterfaceState', 'viewMode',
 ];
 for (const v of windowVars) {

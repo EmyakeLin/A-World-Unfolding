@@ -2,22 +2,20 @@ import { runTick } from './tick-runner.js';
 import { DB } from '../core/db.js';
 
 export async function deductionBridge(text) {
-  const activeStoryDialogue = window.activeStoryDialogue;
+  const activeStoryMessages = window.activeStoryMessages;
   const inputBox = window.inputBox;
   const renderDialogueArea = window.renderDialogueArea;
-  const activeStoryName = window.activeStoryName;
+  const activeStoryId = window.activeStoryId;
 
-  activeStoryDialogue.push({
-    sender: "user", text: text, isFolded: text.length > 80, isNew: true
-  });
+  activeStoryMessages.push({
   if (inputBox) inputBox.setValue('');
   renderDialogueArea();
 
-  const storyName = activeStoryName;
+  const storyName = activeStoryId;
   const storyData = await DB.stories.getAll();
   const story = storyData.find(s => s.title === storyName || s.id === storyName);
   if (!story) {
-    activeStoryDialogue.push({
+    activeStoryMessages.push({
       sender: "ai", text: "⚠️ 未找到当前故事数据，请先创建故事。",
       deduction: [], stats: "", isDeductionOpen: false, isNew: true, isBubbleNew: true
     });
@@ -25,14 +23,14 @@ export async function deductionBridge(text) {
     return;
   }
 
-  const aiMsgIdx = activeStoryDialogue.length;
+  const aiMsgIdx = activeStoryMessages.length;
   const uniqueId = 'ai-' + aiMsgIdx;
   const aiMsg = {
     sender: "ai", text: "", deduction: [], stats: "",
     isDeductionOpen: true, isStreaming: true, currentHeader: "Initializing...",
     isNew: true, isBubbleNew: true
   };
-  activeStoryDialogue.push(aiMsg);
+  activeStoryMessages.push(aiMsg);
   renderDialogueArea();
 
   await runTick(story, text, (stage, detail) => {

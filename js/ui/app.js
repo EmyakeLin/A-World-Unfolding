@@ -44,8 +44,8 @@ async function loadDataFromDB() {
     _allChats.push(...allChats);
 
     state.allStories.length = 0;
-    for (const key in state.collectionsData) delete state.collectionsData[key];
-    for (const key in state.storyDialogues) delete state.storyDialogues[key];
+    for (const key in state.loresetData) delete state.loresetData[key];
+    for (const key in state.storySessions) delete state.storySessions[key];
 
     for (const ls of allLoreSets) {
         const colKey = ls.id;
@@ -58,7 +58,7 @@ async function loadDataFromDB() {
         const allNodes = [...worldviewNodes, ...charNodes, ...sceneNodes, ...itemNodes];
         const allEdges = (ls.worldview.edges || []).map(e => ({ source: e.subject, target: e.object, label: e.relation }));
 
-        state.collectionsData[colKey] = {
+        state.loresetData[colKey] = {
             id: ls.id, title: displayName, displayName: displayName,
             desc: ls.worldview.nodes[0]?.content.description || '',
             stories: [], chats: [],
@@ -67,7 +67,7 @@ async function loadDataFromDB() {
 
         const lsStories = allStoriesRaw.filter(s => s.associatedLoreSetId === ls.id);
         for (const sto of lsStories) {
-            state.collectionsData[colKey].stories.push({
+            state.loresetData[colKey].stories.push({
                 id: sto.id, name: sto.title, rounds: sto.ticks?.length || 0,
                 words: sto.eventQuadruples?.length + ' events',
                 desc: sto.eventQuadruples?.[0]?.content?.substring(0, 50) || ''
@@ -112,26 +112,26 @@ async function loadDataFromDB() {
                     const novelText = chapter?.content || '';
                     dialogues.push({ sender: "ai", text: novelText, deduction: deductionSteps, stats: "", isDeductionOpen: false });
                 }
-                if (dialogues.length > 0) state.storyDialogues[sto.title] = dialogues;
+                if (dialogues.length > 0) state.storySessions[sto.title] = dialogues;
             }
         }
 
         const lsChats = allChats.filter(c => c.associatedLoreSetId === ls.id);
         for (const chat of lsChats) {
-            state.collectionsData[colKey].chats.push({ id: chat.id, target: chat.title, replies: chat.messages?.length || 0 });
+            state.loresetData[colKey].chats.push({ id: chat.id, target: chat.title, replies: chat.messages?.length || 0 });
         }
     }
 
-    const independentStories = allStoriesRaw.filter(s => !s.associatedLoreSetId);
-    for (const sto of independentStories) {
+    const standaloneStories = allStoriesRaw.filter(s => !s.associatedLoreSetId);
+    for (const sto of standaloneStories) {
         state.allStories.push({
-            id: sto.id, name: sto.title, type: 'independent', rounds: sto.ticks?.length || 0,
+            id: sto.id, name: sto.title, type: 'standalone', rounds: sto.ticks?.length || 0,
             words: sto.eventQuadruples?.length + ' events',
             desc: sto.eventQuadruples?.[0]?.content?.substring(0, 80) || ''
         });
     }
 
-    console.log('[WorldStory] 数据同步完成:', Object.keys(state.collectionsData).length, '个设定集,', state.allStories.length, '个故事');
+    console.log('[WorldStory] 数据同步完成:', Object.keys(state.loresetData).length, '个设定集,', state.allStories.length, '个故事');
 }
 
 window.loadDataFromDB = loadDataFromDB;
@@ -144,9 +144,9 @@ window.addEventListener('hashchange', () => {
 
 function handleDialogueCollectionPillClick() {
     const nameEl = document.getElementById('dialogue-collection-name');
-    const isIndependent = nameEl?.dataset.independent === 'true';
-    if (isIndependent) {
-        window.setInterfaceState('independent-story-edit', state.activeStoryName);
+    const isStandalone = nameEl?.dataset.standalone === 'true';
+    if (isStandalone) {
+        window.setInterfaceState('standalone-story-edit', state.activeStoryId);
     } else {
         const colName = nameEl?.textContent || '设定集';
         window.setInterfaceState('collection-view', colName);

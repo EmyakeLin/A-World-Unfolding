@@ -74,12 +74,12 @@ class InputBox {
                 currentColName = document.getElementById('dialogue-collection-name')?.textContent || '设定集';
             }
             
-            // 检测是否为独立故事（侧边栏模式使用 isEditingIndependentStory，避免受 dialogue 页残留 dataset 影响）
-            const isIndependentCol = (this.type === 'sidebar')
-                ? isEditingIndependentStory
-                : (document.getElementById('dialogue-collection-name')?.dataset.independent === 'true');
+            // 检测是否为独立故事（侧边栏模式使用 isEditingStandalone，避免受 dialogue 页残留 dataset 影响）
+            const isStandaloneCol = (this.type === 'sidebar')
+                ? state.isEditingStandalone
+                : (document.getElementById('dialogue-collection-name')?.dataset.standalone === 'true');
 
-            if (isIndependentCol) {
+            if (isStandaloneCol) {
                 // 独立故事：斜杠 + "独立故事"（蓝色，不可点击）
                 const colCheck = document.createElement('div');
                 colCheck.className = 'w-[22px] h-[22px] rounded-full border border-slate-200 flex items-center justify-center bg-white shadow-sm shrink-0 select-none cursor-default';
@@ -260,8 +260,8 @@ class InputBox {
             } else {
                 // Creating or Dialogue mode
                 const colName = isHome ? activeColName : currentDialogueColName;
-                const isIndependent = document.getElementById('dialogue-collection-name')?.dataset.independent === 'true';
-                if (isIndependent && !isHome) {
+                const isStandalone = document.getElementById('dialogue-collection-name')?.dataset.standalone === 'true';
+                if (isStandalone && !isHome) {
                     // 独立故事：斜杠（禁用）+ "独立故事"（蓝色）
                     leftContainer.innerHTML = `
                         <div class="modern-circle text-sm font-semibold text-slate-400 border-slate-200 cursor-default" title="无设定集">
@@ -467,9 +467,9 @@ class InputBox {
             dlTrigger.addEventListener('click', (e) => {
                 e.stopPropagation();
                 // Click pins the Deduction Level popup
-                isDlPopupClicked = true;
-                if (dlPopupShowTimeout) clearTimeout(dlPopupShowTimeout);
-                if (dlPopupTimeout) clearTimeout(dlPopupTimeout);
+                state.isDlPopupClicked = true;
+                if (state.dlPopupShowTimeout) clearTimeout(state.dlPopupShowTimeout);
+                if (state.dlPopupTimeout) clearTimeout(state.dlPopupTimeout);
                 window.openDeductionLevelPopup(dlTrigger);
             });
         }

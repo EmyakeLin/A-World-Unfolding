@@ -228,8 +228,8 @@ const settingsTabContents = {
 async function initSettingsView() {
     syncSettingsUserProfile();
 
-    const collectionsCountVal = Object.keys(collectionsData).length;
-    const storiesCountVal = allStories.length;
+    const collectionsCountVal = Object.keys(state.loresetData).length;
+    const storiesCountVal = state.allStories.length;
     
     const colCountEl = document.getElementById('settings-collections-count');
     const storyCountEl = document.getElementById('settings-stories-count');
@@ -793,10 +793,8 @@ function setSettingModel(modelName) {
     
     // 触发全局模型同步
     window.selectedModelName = modelName;
-    if (inputBox) inputBox.updateModel(modelName);
-    if (inputBox) inputBox.updateModel(modelName);
-    if (sidebarInputBox) sidebarInputBox.updateModel(modelName);
-    if (inputBox) inputBox.updateModel(modelName);
+    if (state.inputBox) state.inputBox.updateModel(modelName);
+    if (state.sidebarInputBox) state.sidebarInputBox.updateModel(modelName);
     
     // 同步右上角快捷操作 radio buttons 状态
     document.querySelectorAll('.qa-model-opt').forEach(opt => {

@@ -63,7 +63,7 @@ async function init() {
   if (typeof window.renderStories === 'function') window.renderStories();
   if (typeof window.renderSidebarItems === 'function') window.renderSidebarItems();
   if (typeof window.renderSidebarCollections === 'function') window.renderSidebarCollections();
-  if (typeof window.renderSidebarIndependentStories === 'function') window.renderSidebarIndependentStories();
+  if (typeof window.renderSidebarStandaloneStories === 'function') window.renderSidebarStandaloneStories();
 
   // Initialize sidebar dialogue history
   if (typeof window.renderSidebarDialogueArea === 'function' && typeof window.getSidebarDialogueHistory === 'function') {

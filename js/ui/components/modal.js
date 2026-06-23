@@ -294,7 +294,7 @@ document.addEventListener('click', () => {
         async function loadNodeFullData(node) {
           let setting = null;
           if (state.currentLoreSetId) setting = await DB.loresets.getById(state.currentLoreSetId);
-          if (!setting && state.currentCollectionId) setting = await DB.loresets.getById(state.currentCollectionId);
+          if (!setting && state.currentLoreSetId) setting = await DB.loresets.getById(state.currentLoreSetId);
           if (!setting) return {};
           const n = node;
           if (n.type === 'worldview') return setting.worldview?.nodes?.find(x => x.id === n.id) || {};
@@ -633,7 +633,7 @@ document.addEventListener('keydown', (e) => {
         async function renderModalGraph(node, fullData) {
           let setting = null;
           if (state.currentLoreSetId) setting = await DB.loresets.getById(state.currentLoreSetId);
-          if (!setting && state.currentCollectionId) setting = await DB.loresets.getById(state.currentCollectionId);
+          if (!setting && state.currentLoreSetId) setting = await DB.loresets.getById(state.currentLoreSetId);
           const graphData = buildGraphData(node, fullData, setting);
           if (state._modalKG) { state._modalKG.destroy(); state._modalKG = null; }
           if (graphData.nodes.length <= 1) {
@@ -974,8 +974,8 @@ document.addEventListener('keydown', (e) => {
             const chatList = document.getElementById('edit-chat-list');
             if (!chatList) return;
 
-            state.editDialogueHistory = [window.createEditWelcomeMsg()];
-            window.renderSidebarDialogueArea('edit-chat-list', state.editDialogueHistory);
+            state.editorSessions = [window.createEditWelcomeMsg()];
+            window.renderSidebarDialogueArea('edit-chat-list', state.editorSessions);
             await window.saveCurrentSidebarSession();
         }
 
@@ -991,17 +991,17 @@ document.addEventListener('keydown', (e) => {
             if (state.sidebarInputBox) state.sidebarInputBox.setStopMode();
 
             // 写入用户消息
-            state.editDialogueHistory.push({ sender: 'user', text, isFolded: text.length > 50, isNew: true });
+            state.editorSessions.push({ sender: 'user', text, isFolded: text.length > 50, isNew: true });
             if (state.sidebarInputBox) state.sidebarInputBox.setValue('');
-            window.renderSidebarDialogueArea('edit-chat-list', state.editDialogueHistory);
+            window.renderSidebarDialogueArea('edit-chat-list', state.editorSessions);
             window.saveCurrentSidebarSession();
 
             // 创建 AI 消息占位
-            const aiMsgIdx = state.editDialogueHistory.length;
+            const aiMsgIdx = state.editorSessions.length;
             const aiUniqueId = `edit-chat-list-ai-${aiMsgIdx}`;
             const aiMsg = { sender: 'ai', text: '', thinking: '', isThinkingOpen: true, isFolded: false, isStreaming: true, isStreamingThinking: true, currentThinkingHeader: 'Thinking...', isNew: true, isBubbleNew: true, toolCalls: [] };
-            state.editDialogueHistory.push(aiMsg);
-            window.renderSidebarDialogueArea('edit-chat-list', state.editDialogueHistory);
+            state.editorSessions.push(aiMsg);
+            window.renderSidebarDialogueArea('edit-chat-list', state.editorSessions);
 
             // 流式增量更新辅助：直接操作 DOM，避免全量重绘杀掉动效
             function streamUpdateDOM() {
@@ -1018,7 +1018,7 @@ document.addEventListener('keydown', (e) => {
             }
 
             try {
-                const messages = editHistoryToMessages(state.editDialogueHistory);
+                const messages = editHistoryToMessages(state.editorSessions);
                 let response = await callLLM(messages, LORESET_TOOLS, (chunk) => {
                     if (chunk.type === 'reasoning') { aiMsg.thinking += chunk.text; }
                     if (chunk.type === 'content') { aiMsg.text += chunk.text; }
@@ -1037,12 +1037,12 @@ document.addEventListener('keydown', (e) => {
                         try { args = JSON.parse(fn.arguments); } catch (e) { args = {}; }
                         let toolResult;
                         try { toolResult = await executeTool(fn.name, args); } catch (e) { toolResult = { error: '工具执行异常: ' + e.message }; }
-                        state.editDialogueHistory.push({ sender: 'tool', toolCallId: tc.id, result: toolResult });
+                        state.editorSessions.push({ sender: 'tool', toolCallId: tc.id, result: toolResult });
                     }
                     window.saveCurrentSidebarSession();
                     // 工具调用后全量重绘一次（新 tool 消息需要渲染）
-                    window.renderSidebarDialogueArea('edit-chat-list', state.editDialogueHistory);
-                    const newMessages = editHistoryToMessages(state.editDialogueHistory);
+                    window.renderSidebarDialogueArea('edit-chat-list', state.editorSessions);
+                    const newMessages = editHistoryToMessages(state.editorSessions);
                     response = await callLLM(newMessages, LORESET_TOOLS, (chunk) => {
                         if (chunk.type === 'reasoning') { aiMsg.thinking += chunk.text; }
                         if (chunk.type === 'content') { aiMsg.text += chunk.text; }
@@ -1071,7 +1071,7 @@ document.addEventListener('keydown', (e) => {
                 window._currentAbortController = null;
             }
             window.saveCurrentSidebarSession();
-            window.renderSidebarDialogueArea('edit-chat-list', state.editDialogueHistory);
+            window.renderSidebarDialogueArea('edit-chat-list', state.editorSessions);
             // 完成后播放扫描动效
             const finalTextEl = document.getElementById(`${aiUniqueId}-text`);
             if (finalTextEl) {
@@ -1082,7 +1082,7 @@ document.addEventListener('keydown', (e) => {
 
         function editHistoryToMessages(history) {
             const loreId = state.currentData?.id || '';
-            const ctxType = state.isEditingIndependentStory ? '独立故事' : '设定集';
+            const ctxType = state.isEditingStandalone ? '独立故事' : '设定集';
             const ctxName = state.currentData?.title || '';
             const ctx = `${ctxType}「${ctxName}」\nlore_id: ${loreId}`;
             const messages = [{ role: 'system', content: LORESET_SYSTEM_PROMPT + '\n\n当前编辑上下文：' + ctx }];

@@ -1,5 +1,6 @@
 import { state } from '../state.js';
 import { DB } from '../../core/db.js';
+import { SettingsSaver } from '../components/base/settings-saver.js';
 
 const settingsTabContents = {
     'model-select': `
@@ -500,14 +501,11 @@ function onHyperParamsChange() {
 }
 
 function saveHyperparameters() {
-    const temp = document.getElementById('setting-hyper-temp').value;
-    const topp = document.getElementById('setting-hyper-topp').value;
-    const maxtokens = document.getElementById('setting-hyper-maxtokens').value;
-    
-    localStorage.setItem('temperature', temp);
-    localStorage.setItem('topp', topp);
-    localStorage.setItem('maxtokens', maxtokens);
-    
+    SettingsSaver.saveGroup([
+        { key: 'temperature', domId: 'setting-hyper-temp' },
+        { key: 'topp', domId: 'setting-hyper-topp' },
+        { key: 'maxtokens', domId: 'setting-hyper-maxtokens' },
+    ]);
     alert("模型超参数已保存！");
 }
 
@@ -524,18 +522,22 @@ function onSysPromptTemplateChange() {
 }
 
 function saveSystemPrompt() {
-    const sysPrompt = document.getElementById('setting-system-prompt').value;
-    localStorage.setItem('system-prompt', sysPrompt);
+    SettingsSaver.save('system-prompt', 'setting-system-prompt');
     refreshUserConfigurablePrompts();
     alert("全局系统提示词已成功保存！");
 }
 
 // 保存各模块系统提示词前缀
 function saveModulePrefix(module) {
-    const prefix = document.getElementById(`setting-${module}-prefix`).value;
-    localStorage.setItem(`${module}-prefix`, prefix);
+    SettingsSaver.save(`${module}-prefix`, `setting-${module}-prefix`);
     refreshUserConfigurablePrompts();
     alert(`${module} 系统提示词前缀已保存！`);
+}
+
+function saveModuleSuffix(module) {
+    SettingsSaver.save(`${module}-suffix`, `setting-${module}-suffix`);
+    refreshUserConfigurablePrompts();
+    alert(`${module} 提示词后缀已保存！`);
 }
 
 // 保存各模块提示词后缀
@@ -547,34 +549,34 @@ function saveModuleSuffix(module) {
 }
 
 function saveNodePlanning() {
-    const model = document.getElementById('setting-node-planning-model').value;
-    const depth = document.getElementById('setting-node-planning-depth').value;
-    localStorage.setItem('node-planning-model', model);
-    localStorage.setItem('node-planning-depth', depth);
+    SettingsSaver.saveGroup([
+        { key: 'node-planning-model', domId: 'setting-node-planning-model' },
+        { key: 'node-planning-depth', domId: 'setting-node-planning-depth' },
+    ]);
     alert("规划节点配置已保存！");
 }
 
 function saveNodeDeduction() {
-    const model = document.getElementById('setting-node-deduction-model').value;
-    const entities = document.getElementById('setting-node-deduction-entities').value;
-    localStorage.setItem('node-deduction-model', model);
-    localStorage.setItem('node-deduction-entities', entities);
+    SettingsSaver.saveGroup([
+        { key: 'node-deduction-model', domId: 'setting-node-deduction-model' },
+        { key: 'node-deduction-entities', domId: 'setting-node-deduction-entities' },
+    ]);
     alert("演绎节点配置已保存！");
 }
 
 function saveNodeExplanation() {
-    const model = document.getElementById('setting-node-explanation-model').value;
-    const format = document.getElementById('setting-node-explanation-format').value;
-    localStorage.setItem('node-explanation-model', model);
-    localStorage.setItem('node-explanation-format', format);
+    SettingsSaver.saveGroup([
+        { key: 'node-explanation-model', domId: 'setting-node-explanation-model' },
+        { key: 'node-explanation-format', domId: 'setting-node-explanation-format' },
+    ]);
     alert("解释节点配置已保存！");
 }
 
 function saveNodeCorrection() {
-    const model = document.getElementById('setting-node-correction-model').value;
-    const strictness = document.getElementById('setting-node-correction-strictness').value;
-    localStorage.setItem('node-correction-model', model);
-    localStorage.setItem('node-correction-strictness', strictness);
+    SettingsSaver.saveGroup([
+        { key: 'node-correction-model', domId: 'setting-node-correction-model' },
+        { key: 'node-correction-strictness', domId: 'setting-node-correction-strictness' },
+    ]);
     alert("修正节点配置已保存！");
 }
 
@@ -615,16 +617,12 @@ function onWritingParamsChange() {
 }
 
 function saveWritingModelSettings() {
-    const temp = document.getElementById('setting-writing-temp').value;
-    const topp = document.getElementById('setting-writing-topp').value;
-    const maxtokens = document.getElementById('setting-writing-maxtokens').value;
-    const sysprompt = document.getElementById('setting-writing-sysprompt').value;
-    
-    localStorage.setItem('writing-temp', temp);
-    localStorage.setItem('writing-topp', topp);
-    localStorage.setItem('writing-maxtokens', maxtokens);
-    localStorage.setItem('writing-sysprompt', sysprompt);
-    
+    SettingsSaver.saveGroup([
+        { key: 'writing-temp', domId: 'setting-writing-temp' },
+        { key: 'writing-topp', domId: 'setting-writing-topp' },
+        { key: 'writing-maxtokens', domId: 'setting-writing-maxtokens' },
+        { key: 'writing-sysprompt', domId: 'setting-writing-sysprompt' },
+    ]);
     alert("正文写作模型设置与超参已成功保存！");
 }
 
@@ -634,14 +632,11 @@ function onChatParamsChange() {
 }
 
 function saveChatModelSettings() {
-    const model = document.getElementById('setting-chat-model-name').value;
-    const temp = document.getElementById('setting-chat-temp').value;
-    const prompt = document.getElementById('setting-chat-sysprompt').value;
-    
-    localStorage.setItem('chat-model-name', model);
-    localStorage.setItem('chat-temp', temp);
-    localStorage.setItem('chat-sysprompt', prompt);
-    
+    SettingsSaver.saveGroup([
+        { key: 'chat-model-name', domId: 'setting-chat-model-name' },
+        { key: 'chat-temp', domId: 'setting-chat-temp' },
+        { key: 'chat-sysprompt', domId: 'setting-chat-sysprompt' },
+    ]);
     alert("聊天模型设置已保存！");
 }
 
@@ -668,8 +663,7 @@ function onChatIntegrationChange() {
 
 // 保存聊天集成度
 function saveChatIntegration() {
-    const val = document.getElementById('setting-chat-integration-level').value;
-    localStorage.setItem('chat-integration-level', val);
+    SettingsSaver.save('chat-integration-level', 'setting-chat-integration-level');
     alert("聊天集成度设置已保存！");
 }
 
@@ -695,15 +689,21 @@ function onAssistantParamsChange() {
 
 // 保存助手模型设置
 function saveAssistantModelSettings() {
-    const model = document.getElementById('setting-assistant-model-name').value;
-    const temp = document.getElementById('setting-assistant-temp').value;
-    const prompt = document.getElementById('setting-assistant-sysprompt').value;
-    
-    localStorage.setItem('assistant-model-name', model);
-    localStorage.setItem('assistant-temp', temp);
-    localStorage.setItem('assistant-sysprompt', prompt);
-    
+    SettingsSaver.saveGroup([
+        { key: 'assistant-model-name', domId: 'setting-assistant-model-name' },
+        { key: 'assistant-temp', domId: 'setting-assistant-temp' },
+        { key: 'assistant-sysprompt', domId: 'setting-assistant-sysprompt' },
+    ]);
     alert("助手模型设置已保存！");
+}
+
+function saveAssistantBehaviorSettings() {
+    SettingsSaver.saveGroup([
+        { key: 'assistant-auth', domId: 'setting-assistant-auth' },
+        { key: 'assistant-detail', domId: 'setting-assistant-detail' },
+        { key: 'assistant-workflow', domId: 'setting-assistant-workflow' },
+    ]);
+    alert("助手行为设置已保存！");
 }
 
 // 保存助手行为设置
@@ -982,19 +982,16 @@ function loadGlobalHyperparamsToUI() {
 }
 
 function saveGlobalHyperparams() {
-    const temp = document.getElementById('setting-hyper-temp-num').value;
-    const topp = document.getElementById('setting-hyper-topp-num').value;
-    const maxtokens = document.getElementById('setting-hyper-maxtokens-num').value;
-    const activeModel = document.getElementById('select-active-model').value;
-    
-    localStorage.setItem('temperature', temp);
-    localStorage.setItem('topp', topp);
-    localStorage.setItem('maxtokens', maxtokens);
+    SettingsSaver.saveGroup([
+        { key: 'temperature', domId: 'setting-hyper-temp-num' },
+        { key: 'topp', domId: 'setting-hyper-topp-num' },
+        { key: 'maxtokens', domId: 'setting-hyper-maxtokens-num' },
+    ]);
+    const activeModel = document.getElementById('select-active-model')?.value;
     if (activeModel) {
         localStorage.setItem('global-active-model', activeModel);
         window.selectedModelName = activeModel;
     }
-    
     alert("全局大模型超参调控数据已安全保存！");
 }
 
@@ -1007,17 +1004,44 @@ function toggleApiKeyInputVisibility() {
     }
 }
 
-function testSettingsApiConnection() {
+async function testSettingsApiConnection() {
+    const urlInput = document.getElementById('setting-api-url');
+    const keyInput = document.getElementById('setting-api-key');
     const btn = event.target;
     const originalText = btn.textContent;
-    btn.textContent = '正在测试连接...';
+
+    const url = (urlInput?.value || '').trim().replace(/\/+$/, '');
+    const key = (keyInput?.value || '').trim();
+
+    if (!url) { alert('请先填写 API 接口地址'); return; }
+    if (!key) { alert('请先填写 API 密钥'); return; }
+
+    btn.textContent = '正在测试...';
     btn.disabled = true;
-    
-    setTimeout(() => {
+
+    const start = performance.now();
+    try {
+        const resp = await fetch(url + '/models', {
+            headers: { 'Authorization': 'Bearer ' + key },
+            signal: AbortSignal.timeout(10000)
+        });
+        const latency = Math.round(performance.now() - start);
+
+        if (resp.ok) {
+            const data = await resp.json().catch(() => null);
+            const modelCount = data?.data?.length ?? '?';
+            alert(`连接成功！\n响应延迟: ${latency}ms\n可用模型: ${modelCount} 个`);
+        } else {
+            const body = await resp.text().catch(() => '');
+            alert(`连接失败 (${resp.status})\n延迟: ${latency}ms\n${body.substring(0, 200)}`);
+        }
+    } catch (e) {
+        const latency = Math.round(performance.now() - start);
+        alert(`连接超时或网络错误\n延迟: ${latency}ms\n${e.message}`);
+    } finally {
         btn.textContent = originalText;
         btn.disabled = false;
-        alert("网络连接成功！API接口响应时间: 124ms. 模型可用。");
-    }, 1000);
+    }
 }
 
 // 8. 演绎深度与推理参数交互

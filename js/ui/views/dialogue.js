@@ -636,8 +636,8 @@ function toggleRightSidebar() {
     }
     
     setTimeout(() => {
-        if (window.viewMode === 'graph' && window.kg) {
-            window.kg.render(window.currentData.kg);
+        if (state.viewMode === 'graph' && state.kg) {
+            state.kg.render(state.currentData.kg);
         }
     }, 350);
 }
@@ -770,7 +770,7 @@ function showEventDetail(evt) {
 
 // ===== Sidebar session persistence =====
 function createEditWelcomeMsg() {
-    const tips = window.isEditingStandalone ?
+    const tips = state.isEditingStandalone ?
         '· <strong class="text-blue-500">新增一个角色设定</strong><br>' +
         '· <strong class="text-blue-500">添加一个新场景</strong><br>' +
         '· <strong class="text-blue-500">修改某个设定的描述</strong>' :

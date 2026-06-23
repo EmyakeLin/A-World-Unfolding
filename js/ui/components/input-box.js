@@ -76,7 +76,7 @@ class InputBox {
             
             // 检测是否为独立故事（侧边栏模式使用 isEditingIndependentStory，避免受 dialogue 页残留 dataset 影响）
             const isIndependentCol = (this.type === 'sidebar')
-                ? isEditingIndependentStory
+                ? state.isEditingIndependentStory
                 : (document.getElementById('dialogue-collection-name')?.dataset.independent === 'true');
 
             if (isIndependentCol) {

@@ -197,13 +197,6 @@ document.addEventListener('click', (e) => {
     if (storyPopup && !storyPopup.classList.contains('hidden') && !storyPopup.contains(e.target) && !e.target.closest('.story-options-btn')) {
         storyPopup.classList.add('hidden');
     }
-    const dlPopup = document.getElementById('deduction-level-popup');
-    if (dlPopup && !dlPopup.classList.contains('hidden') && !dlPopup.contains(e.target) && !e.target.closest('.thinking-level-option')) {
-        state.isDlPopupClicked = false;
-        if (state.dlPopupShowTimeout) clearTimeout(state.dlPopupShowTimeout);
-        if (state.dlPopupTimeout) clearTimeout(state.dlPopupTimeout);
-        dlPopup.classList.add('hidden');
-    }
     const refPopup = document.getElementById('setting-ref-popup');
     if (refPopup && !refPopup.contains(e.target) && !e.target.closest('[onclick*="openSettingRefPopup"]') && !e.target.closest('[title="引用设定"]')) {
         refPopup.classList.add('hidden');

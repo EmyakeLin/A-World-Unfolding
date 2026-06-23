@@ -3,6 +3,7 @@ import { DB } from '../../core/db.js';
 import { createStory, createChatSession } from '../../core/models.js';
 import { InputBox } from '../components/input-box.js';
 import { getAllModels, getCustomModels, getDuplicateModelNames, getShortModelName } from '../utils/model-manager.js';
+import { PopupBase } from '../components/base/popup-base.js';
 
 let lastHeightBeforeMore = null;
 
@@ -381,43 +382,44 @@ function setDeductionLevel(level) {
     if (activeBtn) activeBtn.className = 'flex-1 text-[9px] font-semibold py-1 rounded-md text-center bg-white text-slate-800 shadow-sm transition-all';
 }
 
+let _dlPopup = null;
+function getDlPopup() {
+    if (!_dlPopup) {
+        _dlPopup = new PopupBase('deduction-level-popup', {
+            margin: 12,
+            onShow: () => {
+                const el = _dlPopup.el;
+                if (!el) return;
+                const currentLevel = localStorage.getItem('deduction-level') || 'Standard';
+                el.querySelectorAll('.dl-popup-option').forEach(opt => {
+                    const optLevel = opt.getAttribute('data-level');
+                    const checkIcon = opt.querySelector('.dl-check-icon');
+                    if (optLevel === currentLevel) { opt.classList.add('active', 'bg-blue-50/40'); if (checkIcon) checkIcon.classList.remove('hidden'); }
+                    else { opt.classList.remove('active', 'bg-blue-50/40'); if (checkIcon) checkIcon.classList.add('hidden'); }
+                });
+            }
+        });
+        _dlPopup.register('.thinking-level-option');
+    }
+    return _dlPopup;
+}
+
 window.openDeductionLevelPopup = function(triggerEl) {
-    const popup = document.getElementById('deduction-level-popup');
-    if (!popup) return;
-    popup.classList.remove('hidden');
-    const rect = triggerEl.getBoundingClientRect();
-    const popupWidth = 192;
-    const popupHeight = popup.offsetHeight || 132;
-    let left = rect.right + 12;
-    let top = rect.bottom - popupHeight;
-    if (left + popupWidth > window.innerWidth) left = rect.left - popupWidth - 12;
-    if (top < 8) top = 8;
-    popup.style.left = left + 'px';
-    popup.style.top = top + 'px';
-    const currentLevel = localStorage.getItem('deduction-level') || 'Standard';
-    popup.querySelectorAll('.dl-popup-option').forEach(opt => {
-        const optLevel = opt.getAttribute('data-level');
-        const checkIcon = opt.querySelector('.dl-check-icon');
-        if (optLevel === currentLevel) { opt.classList.add('active', 'bg-blue-50/40'); if (checkIcon) checkIcon.classList.remove('hidden'); }
-        else { opt.classList.remove('active', 'bg-blue-50/40'); if (checkIcon) checkIcon.classList.add('hidden'); }
-    });
+    getDlPopup().show(triggerEl);
 };
 
 window.showDlPopup = function(triggerEl) {
     if (state.dlPopupTimeout) { clearTimeout(state.dlPopupTimeout); state.dlPopupTimeout = null; }
     if (state.dlPopupShowTimeout) clearTimeout(state.dlPopupShowTimeout);
-    if (state.isDlPopupClicked) window.openDeductionLevelPopup(triggerEl);
-    else state.dlPopupShowTimeout = setTimeout(() => { window.openDeductionLevelPopup(triggerEl); }, 200);
+    if (state.isDlPopupClicked) getDlPopup().show(triggerEl);
+    else state.dlPopupShowTimeout = setTimeout(() => { getDlPopup().show(triggerEl); }, 200);
 };
 
 window.hideDlPopup = function() {
     if (state.dlPopupShowTimeout) { clearTimeout(state.dlPopupShowTimeout); state.dlPopupShowTimeout = null; }
     if (state.isDlPopupClicked) return;
     if (state.dlPopupTimeout) clearTimeout(state.dlPopupTimeout);
-    state.dlPopupTimeout = setTimeout(() => {
-        const popup = document.getElementById('deduction-level-popup');
-        if (popup) popup.classList.add('hidden');
-    }, 500);
+    state.dlPopupTimeout = setTimeout(() => { getDlPopup().hide(); }, 500);
 };
 
 window.syncDeductionLevelToUI = function(level) {

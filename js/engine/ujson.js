@@ -58,7 +58,7 @@ const UJSON_cache = {
 
 const UJSON_ID_LABELS = {
   node: '世界观', char: '角色', scene: '场景', item: '道具',
-  history: '历史事件', edge: '关系', evt: '事件'
+  history: '历史事件', geography: '地理', edge: '关系', evt: '事件'
 };
 
 function UJSON_extractIdPrefix(id) {

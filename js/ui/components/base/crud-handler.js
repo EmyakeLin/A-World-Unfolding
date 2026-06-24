@@ -176,8 +176,16 @@ export class ItemCrud extends CrudHandler {
 
 export class HistoryCrud extends CrudHandler {
   constructor() { super('history', 'worldview.history'); }
+  add(setting, args, genId) {
+    const id = args.id || genId('node', args.name);
+    const entity = this.createEntity(id, args);
+    const collection = this.getCollection(setting);
+    if (Array.isArray(collection)) collection.push(entity);
+    else if (typeof collection === 'object') collection[id] = entity;
+    return entity;
+  }
   createEntity(id, args) {
-    return { id, time: args.time, content: { description: args.content?.description || '', detail: args.content?.detail || '' }, connection: args.connection || [] };
+    return { id, type: 'history', time: args.time, content: { description: args.content?.description || '', detail: args.content?.detail || '' }, connection: args.connection || [] };
   }
   applyChanges(entity, args) {
     if (args.time) entity.time = args.time;
@@ -199,7 +207,7 @@ export class GeographyCrud extends CrudHandler {
     return entity;
   }
   createEntity(id, args) {
-    return { id, name: args.name, content: { description: args.content?.description || '' }, neighbors: args.neighbors || [], layer: args.layer || 1, father: args.father || null };
+    return { id, type: 'geography', name: args.name, content: { description: args.content?.description || '' }, neighbors: args.neighbors || [], layer: args.layer || 1, father: args.father || null };
   }
   applyChanges(entity, args) {
     if (args.name) entity.name = args.name;

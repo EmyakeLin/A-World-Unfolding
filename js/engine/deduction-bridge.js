@@ -8,6 +8,8 @@ export async function deductionBridge(text) {
   const activeStoryId = window.activeStoryId;
 
   activeStoryMessages.push({
+    sender: "user", text: text, isFolded: text.length > 80, isNew: true
+  });
   if (inputBox) inputBox.setValue('');
   renderDialogueArea();
 

@@ -1,5 +1,6 @@
 import { getAllModels, getCustomModels, getDuplicateModelNames, getShortModelName } from '../utils/model-manager.js';
 import { state } from '../state.js';
+import { DB } from '../../core/db.js';
 
 class InputBox {
     constructor(options) {
@@ -124,7 +125,9 @@ class InputBox {
                 `;
                 colPill.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    if (typeof setInterfaceState === 'function') {
+                    if (this.containerId === 'edit-chat-input-container') {
+                        this.showSessionPopup(colPill);
+                    } else if (typeof setInterfaceState === 'function') {
                         setInterfaceState('collection-view', currentColName);
                     }
                 });
@@ -544,6 +547,90 @@ class InputBox {
         btn.classList.add('border-slate-300');
         btn.querySelector('.send-icon')?.classList.remove('hidden');
         btn.querySelector('.stop-icon')?.classList.add('hidden');
+    }
+
+    async showSessionPopup(triggerEl) {
+        let popup = document.getElementById('session-history-popup');
+        if (popup) { popup.remove(); }
+
+        popup = document.createElement('div');
+        popup.id = 'session-history-popup';
+        popup.className = 'absolute left-0 bottom-full mb-1.5 z-50 w-64 bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/80 p-2 shadow-xl flex flex-col text-left';
+        popup.style.maxHeight = '280px';
+        popup.style.overflowY = 'auto';
+
+        popup.innerHTML = '<div class="text-[9px] text-slate-400 text-center py-2">加载中...</div>';
+
+        const outer = this.element;
+        outer.style.position = 'relative';
+        outer.appendChild(popup);
+
+        try {
+            const store = await DB.sidebarSessions.getAll ? DB.sidebarSessions.getAll() : [];
+            let sessions;
+            if (Array.isArray(store)) {
+                sessions = store;
+            } else {
+                sessions = [];
+            }
+
+            if (sessions.length === 0) {
+                popup.innerHTML = '<div class="text-[9px] text-slate-400 text-center py-3">暂无历史会话</div>';
+                return;
+            }
+
+            sessions.sort((a, b) => {
+                const aMsg = a.messages?.[a.messages.length - 1];
+                const bMsg = b.messages?.[b.messages.length - 1];
+                return 0;
+            });
+
+            popup.innerHTML = '';
+            sessions.forEach(session => {
+                const name = session.sessionId || session.id;
+                const msgCount = session.messages?.length || 0;
+                const lastMsg = session.messages?.[msgCount - 1];
+                const preview = lastMsg?.text?.substring(0, 40) || '空会话';
+                const source = session.source === 'story' ? '对话' : '编辑';
+
+                const item = document.createElement('div');
+                item.className = 'flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors';
+                item.innerHTML = `
+                    <div class="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+                        <span class="text-[8px] font-bold text-slate-500">${source === '对话' ? 'D' : 'E'}</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-[10px] font-semibold text-slate-700 truncate">${name}</div>
+                        <div class="text-[8px] text-slate-400 truncate">${preview}</div>
+                    </div>
+                    <span class="text-[8px] text-slate-300 shrink-0">${msgCount}条</span>
+                `;
+                item.addEventListener('click', async () => {
+                    popup.remove();
+                    if (session.source === 'story') {
+                        if (typeof setInterfaceState === 'function') {
+                            setInterfaceState('dialogue', session.sessionId);
+                        }
+                    } else {
+                        state.editorSessions = session.messages || [];
+                        if (typeof renderSidebarDialogueArea === 'function') {
+                            renderSidebarDialogueArea('edit-chat-list', state.editorSessions);
+                        }
+                    }
+                });
+                popup.appendChild(item);
+            });
+        } catch (e) {
+            popup.innerHTML = '<div class="text-[9px] text-red-400 text-center py-2">加载失败</div>';
+        }
+
+        const closer = (e) => {
+            if (!popup.contains(e.target) && !triggerEl.contains(e.target)) {
+                popup.remove();
+                document.removeEventListener('click', closer);
+            }
+        };
+        setTimeout(() => document.addEventListener('click', closer), 0);
     }
 }
 

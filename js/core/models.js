@@ -13,11 +13,11 @@ export function createWorldviewEdge(subject, relation, object) {
 }
 
 export function createHistoryEvent(name, time, description, detail, connections) {
-  return { id: DB.genId('history', name), time, content: { description, detail }, connection: connections || [] };
+  return { id: DB.genId('node', name), type: 'history', time, content: { description, detail }, connection: connections || [] };
 }
 
 export function createGeographyNode(name, description, opts = {}) {
-  return { id: DB.genId('node', name), content: { description }, neighbors: opts.neighbors || [], layer: opts.layer || 1, father: opts.father || null };
+  return { id: DB.genId('node', name), type: 'geography', content: { description }, neighbors: opts.neighbors || [], layer: opts.layer || 1, father: opts.father || null };
 }
 
 export function createSceneTemplate(name, position, description, detail, items) {

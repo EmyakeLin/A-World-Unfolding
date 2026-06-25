@@ -13,15 +13,15 @@ const categoryToType = { '事件': 'event', '角色': 'character', '世界观': 
 
 // ===== Helper: get current sidebar dialogue history =====
 function getSidebarDialogueHistory() {
-    if (!state.currentSidebarStoryName) return [];
-    if (!state.sidebarDialogueHistories[state.currentSidebarStoryName]) state.sidebarDialogueHistories[state.currentSidebarStoryName] = [];
-    return state.sidebarDialogueHistories[state.currentSidebarStoryName];
+    if (!state.currentSidebarStoryId) return [];
+    if (!state.sidebarSessions[state.currentSidebarStoryId]) state.sidebarSessions[state.currentSidebarStoryId] = [];
+    return state.sidebarSessions[state.currentSidebarStoryId];
 }
 
 // ===== Copy/Edit helpers for main dialogue =====
 function copyMainMessage(idx) {
-    if (state.activeStoryDialogue[idx]) {
-        const text = state.activeStoryDialogue[idx].text;
+    if (state.activeStoryMessages[idx]) {
+        const text = state.activeStoryMessages[idx].text;
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = text;
         copyText(tempDiv.textContent || tempDiv.innerText || "");
@@ -33,17 +33,17 @@ function editMessage(uniqueId, oldText) {
     if (newText !== null && newText.trim() !== '') {
         const parts = uniqueId.split('-');
         const idx = parseInt(parts[parts.length - 1]);
-        if (!isNaN(idx) && state.activeStoryDialogue[idx]) {
-            state.activeStoryDialogue[idx].text = newText;
+        if (!isNaN(idx) && state.activeStoryMessages[idx]) {
+            state.activeStoryMessages[idx].text = newText;
             renderDialogueArea();
         }
     }
 }
 
 function triggerMainMessageEdit(idx) {
-    if (state.activeStoryDialogue[idx]) {
-        const sender = state.activeStoryDialogue[idx].sender;
-        editMessage(`${sender}-${idx}`, state.activeStoryDialogue[idx].text);
+    if (state.activeStoryMessages[idx]) {
+        const sender = state.activeStoryMessages[idx].sender;
+        editMessage(`${sender}-${idx}`, state.activeStoryMessages[idx].text);
     }
 }
 
@@ -53,7 +53,7 @@ function branchFromMessage(uniqueId) {
 
 // ===== Copy/Edit helpers for sidebar dialogue =====
 function copySidebarMessage(containerId, idx) {
-    const historyArray = containerId === 'sidebar-chat-list' ? getSidebarDialogueHistory() : state.editDialogueHistory;
+    const historyArray = containerId === 'sidebar-chat-list' ? getSidebarDialogueHistory() : state.editorSessions;
     if (historyArray[idx]) {
         const text = historyArray[idx].text;
         const tempDiv = document.createElement('div');
@@ -65,7 +65,7 @@ function copySidebarMessage(containerId, idx) {
 function editSidebarMessage(containerId, uniqueId, oldText) {
     const newText = prompt("编辑此消息内容?", oldText);
     if (newText !== null && newText.trim() !== '') {
-        const historyArray = containerId === 'sidebar-chat-list' ? getSidebarDialogueHistory() : state.editDialogueHistory;
+        const historyArray = containerId === 'sidebar-chat-list' ? getSidebarDialogueHistory() : state.editorSessions;
         const parts = uniqueId.split('-');
         const idx = parseInt(parts[parts.length - 1]);
         if (!isNaN(idx) && historyArray[idx]) {
@@ -76,7 +76,7 @@ function editSidebarMessage(containerId, uniqueId, oldText) {
 }
 
 function triggerSidebarMessageEdit(containerId, idx) {
-    const historyArray = containerId === 'sidebar-chat-list' ? getSidebarDialogueHistory() : state.editDialogueHistory;
+    const historyArray = containerId === 'sidebar-chat-list' ? getSidebarDialogueHistory() : state.editorSessions;
     if (historyArray[idx]) {
         const sender = historyArray[idx].sender;
         editSidebarMessage(containerId, `${containerId}-${sender}-${idx}`, historyArray[idx].text);
@@ -116,8 +116,8 @@ function toggleBubbleDetail(uniqueId) {
 }
 
 function toggleBubbleFoldLocal(uniqueId, idx) {
-    const isFolded = !(state.activeStoryDialogue[idx].isFolded === false ? false : true);
-    state.activeStoryDialogue[idx].isFolded = isFolded;
+    const isFolded = !(state.activeStoryMessages[idx].isFolded === false ? false : true);
+    state.activeStoryMessages[idx].isFolded = isFolded;
     
     const textEl = document.getElementById(`${uniqueId}-text`);
     if (!textEl) return;
@@ -173,8 +173,8 @@ function toggleBubbleFoldLocal(uniqueId, idx) {
 }
 
 function toggleDeductionLocal(idx) {
-    const isOpen = !state.activeStoryDialogue[idx].isDeductionOpen;
-    state.activeStoryDialogue[idx].isDeductionOpen = isOpen;
+    const isOpen = !state.activeStoryMessages[idx].isDeductionOpen;
+    state.activeStoryMessages[idx].isDeductionOpen = isOpen;
     
     const uniqueId = `ai-${idx}`;
     const contentEl = document.getElementById(`${uniqueId}-deduction-content`);
@@ -280,7 +280,7 @@ function renderDialogueArea() {
     if (!chatArea) return;
     chatArea.innerHTML = '';
     
-    state.activeStoryDialogue.forEach((msg, idx) => {
+    state.activeStoryMessages.forEach((msg, idx) => {
         const uniqueId = `${msg.sender}-${idx}`;
         const isUser = msg.sender === 'user';
         
@@ -449,49 +449,23 @@ function renderDialogueArea() {
 
 // ===== Load story dialogue =====
 async function loadStoryDialogue(storyName) {
-    if (state._currentSidebarSessionSource) {
-        const _oldSource = state._currentSidebarSessionSource;
-        const _oldId = state._currentSidebarSessionId;
-        await (async () => {
-            const id = 'sidebar_' + _oldSource + '_' + _oldId;
-            const messages = _oldSource === 'story'
-                ? (state.sidebarDialogueHistories[_oldId] || [])
-                : state.editDialogueHistory;
-            try {
-                await DB.sidebarSessions.put({
-                    id, source: _oldSource, sessionId: _oldId,
-                    messages: JSON.parse(JSON.stringify(messages))
-                });
-            } catch (e) { console.warn('[WorldStory] 保存旧侧边栏会话失败', e); }
-        })();
-    }
-    state._currentSidebarSessionSource = 'story';
-    state._currentSidebarSessionId = storyName;
-    await loadOrCreateSidebarSession('story', storyName);
-
-    state.activeStoryName = storyName;
-    const _storyMeta = state.allStories.find(s => s.name === storyName || s.title === storyName);
-    if (_storyMeta) {
-        try { window._activeFullStory = await DB.stories.getById(_storyMeta.id); } catch (e) { window._activeFullStory = null; }
-    } else {
-        window._activeFullStory = null;
-    }
+    state.activeStoryId = storyName;
     document.getElementById('dialogue-story-title').textContent = storyName;
 
     let collectionName = null;
     let foundColId = null;
-    Object.keys(state.collectionsData).forEach(id => {
-        if (state.collectionsData[id].stories?.some(s => s.name === storyName)) {
-            collectionName = state.collectionsData[id].displayName || state.collectionsData[id].title;
+    Object.keys(state.loresetData).forEach(id => {
+        if (state.loresetData[id].stories?.some(s => s.name === storyName)) {
+            collectionName = state.loresetData[id].displayName || state.loresetData[id].title;
             foundColId = id;
         }
     });
-    state.currentCollectionId = foundColId;
-    const isIndependent = !collectionName;
-    document.getElementById('dialogue-collection-name').textContent = isIndependent ? '独立故事' : collectionName;
-    document.getElementById('dialogue-collection-name').dataset.independent = isIndependent ? 'true' : 'false';
+    state.currentLoreSetId = foundColId;
+    const isStandalone = !collectionName;
+    document.getElementById('dialogue-collection-name').textContent = isStandalone ? '独立故事' : collectionName;
+    document.getElementById('dialogue-collection-name').dataset.standalone = isStandalone ? 'true' : 'false';
 
-    if (isIndependent) {
+    if (isStandalone) {
         document.getElementById('dialogue-collection-icon-blocks')?.classList.add('hidden');
         document.getElementById('dialogue-collection-icon-book')?.classList.remove('hidden');
     } else {
@@ -499,10 +473,35 @@ async function loadStoryDialogue(storyName) {
         document.getElementById('dialogue-collection-icon-book')?.classList.add('hidden');
     }
 
-    state.activeStoryDialogue = state.storyDialogues[storyName] ? JSON.parse(JSON.stringify(state.storyDialogues[storyName])) : [];
-
+    state.activeStoryMessages = state.storySessions[storyName] ? JSON.parse(JSON.stringify(state.storySessions[storyName])) : [];
     window.initInputBoxForPage('dialogue');
     renderDialogueArea();
+
+    const _storyMeta = state.allStories.find(s => s.name === storyName || s.title === storyName);
+
+    const saveOld = state._currentSidebarChatSource ? (async () => {
+        const id = 'sidebar-chat_' + state._currentSidebarChatSource + '_' + state._currentSidebarChatId;
+        const messages = state._currentSidebarChatSource === 'story'
+            ? (state.sidebarSessions[state._currentSidebarChatId] || [])
+            : state.editorSessions;
+        try {
+            await DB.sidebarSessions.put({
+                id, source: state._currentSidebarChatSource, sessionId: state._currentSidebarChatId,
+                messages: JSON.parse(JSON.stringify(messages))
+            });
+        } catch (e) { console.warn('[WorldStory] 保存旧侧边栏会话失败', e); }
+    })() : Promise.resolve();
+
+    state._currentSidebarChatSource = 'story';
+    state._currentSidebarChatId = storyName;
+
+    const [, , fullStory] = await Promise.all([
+        saveOld,
+        loadOrCreateSidebarSession('story', storyName),
+        _storyMeta ? DB.stories.getById(_storyMeta.id).catch(() => null) : Promise.resolve(null)
+    ]);
+
+    window._activeFullStory = fullStory || null;
     renderSidebarDialogueArea('sidebar-chat-list', getSidebarDialogueHistory());
     renderSidebarItems();
 }
@@ -513,7 +512,7 @@ function sendDialogueMessageFromComponent(text) {
         window._deductionBridge(text);
         return;
     }
-    state.activeStoryDialogue.push({
+    state.activeStoryMessages.push({
         sender: "user",
         text: text,
         isFolded: text.length > 80,
@@ -524,7 +523,7 @@ function sendDialogueMessageFromComponent(text) {
     renderDialogueArea();
     
     setTimeout(() => {
-        const aiMsgIdx = state.activeStoryDialogue.length;
+        const aiMsgIdx = state.activeStoryMessages.length;
         const uniqueId = `ai-${aiMsgIdx}`;
         
         const newAiMsg = {
@@ -540,7 +539,7 @@ function sendDialogueMessageFromComponent(text) {
             isBubbleNew: true
         };
         
-        state.activeStoryDialogue.push(newAiMsg);
+        state.activeStoryMessages.push(newAiMsg);
         renderDialogueArea();
         
         const streamSteps = [
@@ -636,8 +635,8 @@ function toggleRightSidebar() {
     }
     
     setTimeout(() => {
-        if (window.viewMode === 'graph' && window.kg) {
-            window.kg.render(window.currentData.kg);
+        if (state.viewMode === 'graph' && state.kg) {
+            state.kg.render(state.currentData.kg);
         }
     }, 350);
 }
@@ -654,7 +653,7 @@ async function renderSidebarItems() {
 
     let items = [];
     const nameEl = document.getElementById('dialogue-collection-name');
-    const isIndependent = nameEl?.dataset.independent === 'true';
+    const isStandalone = nameEl?.dataset.standalone === 'true';
     const fullStory = window._activeFullStory;
 
     if (entityType === 'event') {
@@ -681,7 +680,7 @@ async function renderSidebarItems() {
                 _intent: eq.intent || {}
             }));
         }
-    } else if (isIndependent) {
+    } else if (isStandalone) {
         if (fullStory && fullStory.instances) {
             const typeMap = { 'character': 'characters', 'scene': 'scenes', 'prop': 'items' };
             const instKey = typeMap[entityType];
@@ -695,8 +694,8 @@ async function renderSidebarItems() {
                 }));
             }
         }
-    } else if (state.currentCollectionId && state.collectionsData[state.currentCollectionId]) {
-        const col = state.collectionsData[state.currentCollectionId];
+    } else if (state.currentLoreSetId && state.loresetData[state.currentLoreSetId]) {
+        const col = state.loresetData[state.currentLoreSetId];
         items = (col.kg?.nodes || []).filter(n => n.type === entityType);
     }
 
@@ -770,7 +769,7 @@ function showEventDetail(evt) {
 
 // ===== Sidebar session persistence =====
 function createEditWelcomeMsg() {
-    const tips = window.isEditingIndependentStory ?
+    const tips = state.isEditingStandalone ?
         '· <strong class="text-blue-500">新增一个角色设定</strong><br>' +
         '· <strong class="text-blue-500">添加一个新场景</strong><br>' +
         '· <strong class="text-blue-500">修改某个设定的描述</strong>' :
@@ -785,41 +784,41 @@ function createEditWelcomeMsg() {
 }
 
 async function saveCurrentSidebarSession() {
-    if (!state._currentSidebarSessionSource || !state._currentSidebarSessionId) return;
-    const id = 'sidebar_' + state._currentSidebarSessionSource + '_' + state._currentSidebarSessionId;
-    const messages = state._currentSidebarSessionSource === 'story'
-        ? (state.sidebarDialogueHistories[state._currentSidebarSessionId] || [])
-        : state.editDialogueHistory;
+    if (!state._currentSidebarChatSource || !state._currentSidebarChatId) return;
+    const id = 'sidebar-chat_' + state._currentSidebarChatSource + '_' + state._currentSidebarChatId;
+    const messages = state._currentSidebarChatSource === 'story'
+        ? (state.sidebarSessions[state._currentSidebarChatId] || [])
+        : state.editorSessions;
     try {
         await DB.sidebarSessions.put({
             id,
-            source: state._currentSidebarSessionSource,
-            sessionId: state._currentSidebarSessionId,
+            source: state._currentSidebarChatSource,
+            sessionId: state._currentSidebarChatId,
             messages: JSON.parse(JSON.stringify(messages))
         });
     } catch (e) { console.warn('[WorldStory] 保存侧边栏会话失败', e); }
 }
 
 async function loadOrCreateSidebarSession(source, sessionId) {
-    const id = 'sidebar_' + source + '_' + sessionId;
+    const id = 'sidebar-chat_' + source + '_' + sessionId;
     let session = null;
     try { session = await DB.sidebarSessions.getById(id); } catch (e) { /* ignore */ }
     console.log('[DEBUG loadSession] id:', id, 'found:', !!session, 'messages:', session?.messages?.length);
     if (session && session.messages && session.messages.length > 0) {
         if (source === 'story') {
-            state.sidebarDialogueHistories[sessionId] = session.messages;
+            state.sidebarSessions[sessionId] = session.messages;
         } else {
-            state.editDialogueHistory = session.messages;
+            state.editorSessions = session.messages;
         }
         return;
     }
     if (source === 'story') {
-        state.sidebarDialogueHistories[sessionId] = [];
+        state.sidebarSessions[sessionId] = [];
     } else {
-        state.editDialogueHistory = [createEditWelcomeMsg()];
+        state.editorSessions = [createEditWelcomeMsg()];
         await DB.sidebarSessions.put({
             id, source, sessionId,
-            messages: JSON.parse(JSON.stringify(state.editDialogueHistory))
+            messages: JSON.parse(JSON.stringify(state.editorSessions))
         });
     }
 }
@@ -993,7 +992,7 @@ function renderSidebarDialogueArea(containerId, historyArray) {
 
 // ===== Sidebar bubble fold toggle =====
 function toggleSidebarBubbleFoldLocal(containerId, uniqueId, idx) {
-    const historyArray = containerId === 'sidebar-chat-list' ? getSidebarDialogueHistory() : state.editDialogueHistory;
+    const historyArray = containerId === 'sidebar-chat-list' ? getSidebarDialogueHistory() : state.editorSessions;
     const isFolded = !(historyArray[idx].isFolded === false ? false : true);
     historyArray[idx].isFolded = isFolded;
     
@@ -1052,7 +1051,7 @@ function toggleSidebarBubbleFoldLocal(containerId, uniqueId, idx) {
 
 // ===== Sidebar thinking toggle =====
 function toggleSidebarThinkingLocal(containerId, idx) {
-    const historyArray = containerId === 'sidebar-chat-list' ? getSidebarDialogueHistory() : state.editDialogueHistory;
+    const historyArray = containerId === 'sidebar-chat-list' ? getSidebarDialogueHistory() : state.editorSessions;
     const isOpen = !historyArray[idx].isThinkingOpen;
     historyArray[idx].isThinkingOpen = isOpen;
     
@@ -1218,8 +1217,8 @@ function openCollectionMountPopup(e) {
     const list = document.getElementById('collection-mount-list');
     if (list) {
         list.innerHTML = '';
-        Object.keys(state.collectionsData).forEach(id => {
-            const col = state.collectionsData[id];
+        Object.keys(state.loresetData).forEach(id => {
+            const col = state.loresetData[id];
             const displayName = col.displayName || col.title || `设定集${id}`;
 
             const el = document.createElement('div');
@@ -1258,8 +1257,8 @@ async function renderSettingRefList(filter = '') {
     list.innerHTML = '';
 
     const allItems = [];
-    if (state.currentCollectionId && state.collectionsData[state.currentCollectionId]) {
-        const col = state.collectionsData[state.currentCollectionId];
+    if (state.currentLoreSetId && state.loresetData[state.currentLoreSetId]) {
+        const col = state.loresetData[state.currentLoreSetId];
         const typeToCategory = { event: '事件', character: '角色', worldview: '世界观', prop: '道具', scene: '场景' };
         (col.kg?.nodes || []).forEach(n => {
             allItems.push({ category: typeToCategory[n.type] || n.type, name: n.name });

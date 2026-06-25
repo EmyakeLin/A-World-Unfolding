@@ -19,7 +19,7 @@ export function buildGraph(setting) {
     nodes.set(h.id, { id: h.id, name: h.id, desc: h.content?.description || '', type: 'history' });
   }
   for (const g of (setting.worldview?.geography || [])) {
-    nodes.set(g.id, { id: g.id, name: g.id, desc: g.content?.description || '', type: 'geography' });
+    nodes.set(g.id, { id: g.id, name: g.name || g.id, desc: g.content?.description || '', type: 'geography' });
   }
 
   // worldview edges

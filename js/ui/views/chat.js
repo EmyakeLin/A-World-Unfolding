@@ -162,8 +162,8 @@ function renderChatAtList(filter = '') {
     list.innerHTML = '';
 
     const characters = [];
-    Object.keys(state.collectionsData).forEach(colId => {
-        const col = state.collectionsData[colId];
+    Object.keys(state.loresetData).forEach(colId => {
+        const col = state.loresetData[colId];
         const collectionName = col.displayName || col.title || `设定集 ${colId}`;
         const charNodes = (col.kg?.nodes || []).filter(n => n.type === 'character');
         charNodes.forEach(node => {

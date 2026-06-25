@@ -4,10 +4,10 @@ import { createLoreSet, createWorldviewNode, createStory, createChatSession, cre
 import { buildGraph } from '../../core/graph.js';
 
         function loadCollection(id) {
-            state.currentCollectionId = id;
-            state.currentData = state.collectionsData[id];
+            state.currentLoreSetId = id;
+            state.currentData = state.loresetData[id];
 
-            const displayName = state.collectionsData[id]?.displayName || state.collectionsData[id]?.title || `设定集 ${id}`;
+            const displayName = state.loresetData[id]?.displayName || state.loresetData[id]?.title || `设定集 ${id}`;
             document.getElementById('collection-title').textContent = displayName;
             document.getElementById('collection-desc').textContent = state.currentData.desc;
 
@@ -474,7 +474,7 @@ import { buildGraph } from '../../core/graph.js';
         }
 
         async function renameCollection() {
-            if (state.isEditingIndependentStory) {
+            if (state.isEditingStandalone) {
                 const currentName = state.currentData.displayName || state.currentData.title || '独立故事';
                 const newName = prompt('重命名独立故事:', currentName);
                 if (newName && newName.trim()) {
@@ -485,7 +485,7 @@ import { buildGraph } from '../../core/graph.js';
                     state.currentData.title = trimmedName;
                     
                     // 2. 查找并更新 state.allStories 里的对应独立故事的 title / name
-                    const story = state.allStories.find(s => s.id === state.activeEditingStoryId);
+                    const story = state.allStories.find(s => s.id === state.activeStoryId);
                     if (story) {
                         story.title = trimmedName;
                         story.name = trimmedName;
@@ -500,19 +500,19 @@ import { buildGraph } from '../../core/graph.js';
                     
                     // 5. 更新对话页的 header 胶囊和全局状态
                     const dialogueColNameEl = document.getElementById('dialogue-collection-name');
-                    if (dialogueColNameEl && (window.activeStoryName === currentName || dialogueColNameEl.textContent === currentName || dialogueColNameEl.dataset.independent === 'true')) {
+                    if (dialogueColNameEl && (window.activeStoryId === currentName || dialogueColNameEl.textContent === currentName || dialogueColNameEl.dataset.standalone === 'true')) {
                         dialogueColNameEl.textContent = trimmedName;
                     }
-                    if (window.activeStoryName === currentName) {
-                        window.activeStoryName = trimmedName;
+                    if (window.activeStoryId === currentName) {
+                        window.activeStoryId = trimmedName;
                     }
-                    if (window.currentSidebarStoryName === currentName) {
-                        window.currentSidebarStoryName = trimmedName;
+                    if (window.currentSidebarStoryId === currentName) {
+                        window.currentSidebarStoryId = trimmedName;
                         // 迁移侧边栏会话 DB key（无论当前处于 story 还是 edit 模式）
-                        if (window._currentSidebarSessionSource === 'story' && window._currentSidebarSessionId === currentName) {
-                            const oldId = 'sidebar_story_' + currentName;
-                            window._currentSidebarSessionId = trimmedName;
-                            const newId = 'sidebar_story_' + trimmedName;
+                        if (window._currentSidebarChatSource === 'story' && window._currentSidebarChatId === currentName) {
+                            const oldId = 'sidebar-chat_story_' + currentName;
+                            window._currentSidebarChatId = trimmedName;
+                            const newId = 'sidebar-chat_story_' + trimmedName;
                             try {
                                 const session = await DB.sidebarSessions.getById(oldId);
                                 if (session) {
@@ -524,8 +524,8 @@ import { buildGraph } from '../../core/graph.js';
                             } catch (e) { console.warn('[WorldStory] 侧边栏会话迁移失败', e); }
                         } else {
                             // 编辑模式下也需要迁移 story 模式的会话 key（否则返回对话时会话丢失）
-                            const oldId = 'sidebar_story_' + currentName;
-                            const newId = 'sidebar_story_' + trimmedName;
+                            const oldId = 'sidebar-chat_story_' + currentName;
+                            const newId = 'sidebar-chat_story_' + trimmedName;
                             try {
                                 const session = await DB.sidebarSessions.getById(oldId);
                                 if (session) {
@@ -539,7 +539,7 @@ import { buildGraph } from '../../core/graph.js';
                     }
 
                     // 6. 重新刷新侧边栏独立故事列表
-                    await window.renderSidebarIndependentStories();
+                    await window.renderSidebarStandaloneStories();
                     
                     // 7. 如果在首页，也刷新故事卡片
                     if (typeof renderCollectionOverview === 'function') {
@@ -553,9 +553,9 @@ import { buildGraph } from '../../core/graph.js';
                     const trimmedName = newName.trim();
 
                     // 更新内存数据
-                    if (state.collectionsData[state.currentCollectionId]) {
-                        state.collectionsData[state.currentCollectionId].displayName = trimmedName;
-                        state.collectionsData[state.currentCollectionId].title = trimmedName;
+                    if (state.loresetData[state.currentLoreSetId]) {
+                        state.loresetData[state.currentLoreSetId].displayName = trimmedName;
+                        state.loresetData[state.currentLoreSetId].title = trimmedName;
                     }
                     state.currentData.displayName = trimmedName;
                     state.currentData.title = trimmedName;
@@ -605,9 +605,9 @@ import { buildGraph } from '../../core/graph.js';
                 storyMem.title = trimmedTitle;
             }
 
-            // 3. 更新内存 state.collectionsData 里的 stories 列表
-            for (const key in state.collectionsData) {
-                const col = state.collectionsData[key];
+            // 3. 更新内存 state.loresetData 里的 stories 列表
+            for (const key in state.loresetData) {
+                const col = state.loresetData[key];
                 if (col.stories) {
                     const stoCol = col.stories.find(s => s.id === storyId);
                     if (stoCol) {
@@ -617,25 +617,25 @@ import { buildGraph } from '../../core/graph.js';
                 }
             }
 
-            // 4. 更新 state.storyDialogues 对话数据缓存中的键名
-            if (state.storyDialogues[oldTitle]) {
-                state.storyDialogues[trimmedTitle] = state.storyDialogues[oldTitle];
-                delete state.storyDialogues[oldTitle];
+            // 4. 更新 state.storySessions 对话数据缓存中的键名
+            if (state.storySessions[oldTitle]) {
+                state.storySessions[trimmedTitle] = state.storySessions[oldTitle];
+                delete state.storySessions[oldTitle];
             }
 
             // 5. 如果是当前处于 active 状态的故事，刷新相关的文本和全局变量
-            if (window.activeStoryName === oldTitle) {
-                window.activeStoryName = trimmedTitle;
+            if (window.activeStoryId === oldTitle) {
+                window.activeStoryId = trimmedTitle;
                 const titleEl = document.getElementById('dialogue-story-title');
                 if (titleEl) titleEl.textContent = trimmedTitle;
             }
-            if (window.currentSidebarStoryName === oldTitle) {
-                window.currentSidebarStoryName = trimmedTitle;
+            if (window.currentSidebarStoryId === oldTitle) {
+                window.currentSidebarStoryId = trimmedTitle;
                 // 迁移侧边栏会话 DB key（无论当前处于 story 还是 edit 模式）
-                if (window._currentSidebarSessionSource === 'story' && window._currentSidebarSessionId === oldTitle) {
-                    const oldId = 'sidebar_story_' + oldTitle;
-                    window._currentSidebarSessionId = trimmedTitle;
-                    const newId = 'sidebar_story_' + trimmedTitle;
+                if (window._currentSidebarChatSource === 'story' && window._currentSidebarChatId === oldTitle) {
+                    const oldId = 'sidebar-chat_story_' + oldTitle;
+                    window._currentSidebarChatId = trimmedTitle;
+                    const newId = 'sidebar-chat_story_' + trimmedTitle;
                     try {
                         const session = await DB.sidebarSessions.getById(oldId);
                         if (session) {
@@ -647,8 +647,8 @@ import { buildGraph } from '../../core/graph.js';
                     } catch (e) { console.warn('[WorldStory] 侧边栏会话迁移失败', e); }
                 } else {
                     // 编辑模式下也需要迁移 story 模式的会话 key（否则返回对话时会话丢失）
-                    const oldId = 'sidebar_story_' + oldTitle;
-                    const newId = 'sidebar_story_' + trimmedTitle;
+                    const oldId = 'sidebar-chat_story_' + oldTitle;
+                    const newId = 'sidebar-chat_story_' + trimmedTitle;
                     try {
                         const session = await DB.sidebarSessions.getById(oldId);
                         if (session) {
@@ -663,7 +663,7 @@ import { buildGraph } from '../../core/graph.js';
 
             // 6. 重新刷新侧边栏设定集列表与独立故事列表
             window.renderSidebarCollections();
-            window.renderSidebarIndependentStories();
+            window.renderSidebarStandaloneStories();
 
             // 7. 刷新主页概览
             if (typeof renderCollectionOverview === 'function') {
@@ -692,9 +692,9 @@ import { buildGraph } from '../../core/graph.js';
                 state.allStories.splice(idx, 1);
             }
 
-            // 3. 从内存 state.collectionsData stories 列表移除
-            for (const key in state.collectionsData) {
-                const col = state.collectionsData[key];
+            // 3. 从内存 state.loresetData stories 列表移除
+            for (const key in state.loresetData) {
+                const col = state.loresetData[key];
                 if (col.stories) {
                     const cIdx = col.stories.findIndex(s => s.id === storyId);
                     if (cIdx !== -1) {
@@ -704,26 +704,26 @@ import { buildGraph } from '../../core/graph.js';
             }
 
             // 4. 从对话缓存中删除
-            delete state.storyDialogues[title];
+            delete state.storySessions[title];
 
             // 5. 如果被删除的故事是当前正在查看的故事，切换回首页状态
-            if (window.activeStoryName === title) {
-                window.activeStoryName = "";
+            if (window.activeStoryId === title) {
+                window.activeStoryId = "";
                 window.setInterfaceState('home');
             }
-            if (window.currentSidebarStoryName === title) {
-                window.currentSidebarStoryName = "";
+            if (window.currentSidebarStoryId === title) {
+                window.currentSidebarStoryId = "";
                 // 清理已删除故事的侧边栏会话
-                if (window._currentSidebarSessionSource === 'story' && window._currentSidebarSessionId === title) {
-                    try { await DB.sidebarSessions.delete('sidebar_story_' + title); } catch (e) { /* ignore */ }
-                    window._currentSidebarSessionSource = null;
-                    window._currentSidebarSessionId = null;
+                if (window._currentSidebarChatSource === 'story' && window._currentSidebarChatId === title) {
+                    try { await DB.sidebarSessions.delete('sidebar-chat_story_' + title); } catch (e) { /* ignore */ }
+                    window._currentSidebarChatSource = null;
+                    window._currentSidebarChatId = null;
                 }
             }
 
             // 6. 重新刷新侧边栏
             window.renderSidebarCollections();
-            window.renderSidebarIndependentStories();
+            window.renderSidebarStandaloneStories();
 
             // 7. 刷新主页概览
             if (typeof renderCollectionOverview === 'function') {
@@ -811,11 +811,11 @@ import { buildGraph } from '../../core/graph.js';
             storiesList.innerHTML = '';
 
             // 1. 渲染设定集列表
-            const collectionKeys = Object.keys(state.collectionsData);
+            const collectionKeys = Object.keys(state.loresetData);
             if (collectionsCount) collectionsCount.textContent = collectionKeys.length;
 
             collectionKeys.forEach(id => {
-                const col = state.collectionsData[id];
+                const col = state.loresetData[id];
                 const displayName = col.displayName || col.title || `设定集 ${id}`;
                 const desc = col.desc || '暂无描述信息...';
 
@@ -855,10 +855,10 @@ import { buildGraph } from '../../core/graph.js';
             });
 
             // 2. 渲染独立故事列表
-            const independentStories = state.allStories.filter(s => s.type === 'independent');
-            if (storiesCount) storiesCount.textContent = independentStories.length;
+            const standaloneStories = state.allStories.filter(s => s.type === 'standalone');
+            if (storiesCount) storiesCount.textContent = standaloneStories.length;
             
-            independentStories.forEach(story => {
+            standaloneStories.forEach(story => {
                 const card = document.createElement('div');
                 card.className = "p-4 rounded-2xl border border-slate-200/50 bg-white/60 hover:bg-white/95 backdrop-blur-md hover:border-indigo-300 hover:shadow-[0_8px_20px_-6px_rgba(99,102,241,0.12)] hover:-translate-y-0.5 transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[110px] group fade-in";
                 card.onclick = () => {
@@ -878,7 +878,7 @@ import { buildGraph } from '../../core/graph.js';
                             </div>
                             <div class="flex items-center gap-1.5">
                                 <span class="text-[9.5px] text-slate-500 font-bold bg-slate-100/80 border border-slate-200/60 px-2 py-0.5 rounded-full select-none group-hover:bg-indigo-50 group-hover:text-indigo-600 group-hover:border-indigo-200/40 transition-colors">${story.roundCount || 0} 轮 · ${story.wordCount || 0} 字</span>
-                                <button onclick="event.stopPropagation(); window.setInterfaceState('independent-story-edit', '${story.name}')" class="text-[9.5px] text-slate-500 font-bold bg-white border border-slate-200 hover:border-indigo-300 hover:text-indigo-600 px-2.5 py-0.5 rounded-full select-none shadow-sm cursor-pointer transition-all flex items-center gap-1" title="编辑独立故事设定">
+                                <button onclick="event.stopPropagation(); window.setInterfaceState('standalone-story-edit', '${story.name}')" class="text-[9.5px] text-slate-500 font-bold bg-white border border-slate-200 hover:border-indigo-300 hover:text-indigo-600 px-2.5 py-0.5 rounded-full select-none shadow-sm cursor-pointer transition-all flex items-center gap-1" title="编辑独立故事设定">
                                     <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/>
                                     </svg>
@@ -895,7 +895,7 @@ import { buildGraph } from '../../core/graph.js';
             // 3. 追加“新建独立故事”卡片式按钮 (完美的卡片样式，符合设定集概览页面.png设计)
             const createBtnCard = document.createElement('div');
             createBtnCard.className = "p-4 rounded-2xl border border-dashed border-slate-300 hover:border-indigo-300 bg-white/40 hover:bg-indigo-50/30 hover:shadow-[0_8px_20px_-6px_rgba(99,102,241,0.08)] hover:-translate-y-0.5 transition-all duration-300 cursor-pointer flex flex-col justify-center items-center min-h-[110px] group fade-in active:scale-[0.98]";
-            createBtnCard.onclick = handleCreateNewIndependentStory;
+            createBtnCard.onclick = handleCreateNewStandaloneStory;
             createBtnCard.innerHTML = `
                 <div class="flex flex-col items-center justify-center gap-2 select-none">
                     <div class="w-8 h-8 rounded-full border border-dashed border-slate-400 group-hover:border-indigo-400 flex items-center justify-center text-slate-400 group-hover:text-indigo-500 transition-all group-hover:bg-white shadow-sm">
@@ -924,7 +924,7 @@ import { buildGraph } from '../../core/graph.js';
             await DB.loresets.put(newLoreSet);
 
             // 同步到 mock 变量（使用 DB ID 作为 key，保证刷新后稳定）
-            state.collectionsData[newLoreSet.id] = {
+            state.loresetData[newLoreSet.id] = {
                 id: newLoreSet.id, title: title.trim(), displayName: title.trim(), desc: desc.trim() || '暂无描述信息...',
                 stories: [], chats: [],
                 kg: { nodes: [{ id: newLoreSet.worldview.nodes[0].id, name: title.trim(), type: 'worldview', desc: desc.trim() }], links: [] }
@@ -937,7 +937,7 @@ import { buildGraph } from '../../core/graph.js';
             renderCollectionOverview();
         }
 
-        async function handleCreateNewIndependentStory() {
+        async function handleCreateNewStandaloneStory() {
             const title = prompt("请输入新独立故事的名称:", "未命名独立故事");
             if (!title || !title.trim()) return;
 
@@ -948,7 +948,7 @@ import { buildGraph } from '../../core/graph.js';
             await DB.stories.put(newStory);
 
             state.allStories.push({
-                id: newStory.id, name: title.trim(), type: 'independent',
+                id: newStory.id, name: title.trim(), type: 'standalone',
                 rounds: 0, words: '0 events',
                 desc: desc.trim() || '暂无故事背景简述...'
             });
@@ -956,14 +956,14 @@ import { buildGraph } from '../../core/graph.js';
             alert(`独立故事【${title.trim()}】创建成功！`);
 
             // Refresh views
-            window.renderSidebarIndependentStories();
+            window.renderSidebarStandaloneStories();
             renderCollectionOverview();
         }
 
         async function enterCollectionEdit(collectionName) {
-            state.isEditingIndependentStory = false;
+            state.isEditingStandalone = false;
 
-            // 从 state.collectionsData 反查 LoreSet ID
+            // 从 state.loresetData 反查 LoreSet ID
             const allLS = await DB.loresets.getAll();
             const matchLS = allLS.find(ls => ls.name === collectionName);
             state.currentLoreSetId = matchLS?.id || null;
@@ -980,13 +980,13 @@ import { buildGraph } from '../../core/graph.js';
             document.getElementById('edit-collection-icon-book')?.classList.add('hidden');
             document.getElementById('edit-rename-btn')?.setAttribute('title', '重命名设定集');
 
-            // 从 state.collectionsData 按名称查找设定集
-            const matchKey = Object.keys(state.collectionsData).find(k => {
-                const col = state.collectionsData[k];
+            // 从 state.loresetData 按名称查找设定集
+            const matchKey = Object.keys(state.loresetData).find(k => {
+                const col = state.loresetData[k];
                 return (col.displayName || col.title) === collectionName;
             });
             if (!matchKey) { console.warn('设定集未找到:', collectionName); return; }
-            state.currentCollectionId = matchKey;
+            state.currentLoreSetId = matchKey;
             loadCollection(matchKey);
 
             const displayName = collectionName;
@@ -1019,14 +1019,14 @@ import { buildGraph } from '../../core/graph.js';
             // 加载或创建编辑侧边栏会话
             // 注意1：必须在更新 session ID 之前保存旧会话，否则会用新会话的空数据覆盖旧会话
             // 注意2：session key 必须使用 DB ID 而非位置索引（matchKey），否则刷新后顺序变化导致会话错位
-            console.log('[DEBUG enterCollectionEdit] 旧会话:', window._currentSidebarSessionSource, window._currentSidebarSessionId);
-            if (window._currentSidebarSessionSource) {
-                const _oldSource = window._currentSidebarSessionSource;
-                const _oldId = window._currentSidebarSessionId;
-                const id = 'sidebar_' + _oldSource + '_' + _oldId;
+            console.log('[DEBUG enterCollectionEdit] 旧会话:', window._currentSidebarChatSource, window._currentSidebarChatId);
+            if (window._currentSidebarChatSource) {
+                const _oldSource = window._currentSidebarChatSource;
+                const _oldId = window._currentSidebarChatId;
+                const id = 'sidebar-chat_' + _oldSource + '_' + _oldId;
                 const messages = _oldSource === 'story'
-                    ? (window.sidebarDialogueHistories[_oldId] || [])
-                    : window.editDialogueHistory;
+                    ? (state.sidebarSessions[_oldId] || [])
+                    : state.editorSessions;
                 try {
                     await DB.sidebarSessions.put({
                         id, source: _oldSource, sessionId: _oldId,
@@ -1034,16 +1034,16 @@ import { buildGraph } from '../../core/graph.js';
                     });
                 } catch (e) { console.warn('[WorldStory] 保存旧侧边栏会话失败', e); }
             }
-            window._currentSidebarSessionSource = 'edit';
-            window._currentSidebarSessionId = 'loreset_' + (state.currentData.id || matchKey);
-            console.log('[DEBUG enterCollectionEdit] 新会话ID:', window._currentSidebarSessionId, 'DB_ID:', state.currentData.id, 'matchKey:', matchKey);
-            await window.loadOrCreateSidebarSession('edit', window._currentSidebarSessionId);
-            console.log('[DEBUG enterCollectionEdit] 加载后消息数:', window.editDialogueHistory.length, '首条:', window.editDialogueHistory[0]?.text?.substring(0, 30));
-            window.renderSidebarDialogueArea('edit-chat-list', window.editDialogueHistory);
+            window._currentSidebarChatSource = 'edit';
+            window._currentSidebarChatId = 'loreset_' + (state.currentData.id || matchKey);
+            console.log('[DEBUG enterCollectionEdit] 新会话ID:', window._currentSidebarChatId, 'DB_ID:', state.currentData.id, 'matchKey:', matchKey);
+            await window.loadOrCreateSidebarSession('edit', window._currentSidebarChatId);
+            console.log('[DEBUG enterCollectionEdit] 加载后消息数:', state.editorSessions.length, '首条:', state.editorSessions[0]?.text?.substring(0, 30));
+            window.renderSidebarDialogueArea('edit-chat-list', state.editorSessions);
         }
 
-        async function enterIndependentStoryEdit(storyName) {
-            state.isEditingIndependentStory = true;
+        async function enterStandaloneStoryEdit(storyName) {
+            state.isEditingStandalone = true;
             
             // 查找对应的独立故事对象
             const story = state.allStories.find(s => s.name === storyName || s.title === storyName);
@@ -1051,9 +1051,9 @@ import { buildGraph } from '../../core/graph.js';
                 console.warn('独立故事未找到:', storyName);
                 return;
             }
-            state.activeEditingStoryId = story.id;
+            state.activeStoryId = story.id;
 
-            const _storyForLore = await DB.stories.getById(state.activeEditingStoryId);
+            const _storyForLore = await DB.stories.getById(state.activeStoryId);
             state.currentLoreSetId = _storyForLore?.associatedLoreSetId || null;
 
             // 隐藏世界观选项卡（因为独立故事是扁平实例，无设定集的世界观概念）
@@ -1077,7 +1077,7 @@ import { buildGraph } from '../../core/graph.js';
             };
 
             // 添加根节点以使 D3 力导向图可以正确支撑中心结构
-            state.currentData.kg.nodes.push({ id: 'independent-root', name: story.title || story.name, type: 'root' });
+            state.currentData.kg.nodes.push({ id: 'standalone-root', name: story.title || story.name, type: 'root' });
 
             // 提取人物、场景和道具实例
             const typeMap = { 'characters': 'character', 'scenes': 'scene', 'items': 'prop' };
@@ -1092,7 +1092,7 @@ import { buildGraph } from '../../core/graph.js';
                         desc: insts[id].desc,
                         type: type
                     });
-                    state.currentData.kg.links.push({ source: 'independent-root', target: id });
+                    state.currentData.kg.links.push({ source: 'standalone-root', target: id });
                 });
             });
 
@@ -1124,13 +1124,13 @@ import { buildGraph } from '../../core/graph.js';
 
             // 加载或创建编辑侧边栏会话
             // 注意：必须在更新 session ID 之前保存旧会话，否则会用新会话的空数据覆盖旧会话
-            if (window._currentSidebarSessionSource) {
-                const _oldSource = window._currentSidebarSessionSource;
-                const _oldId = window._currentSidebarSessionId;
-                const id = 'sidebar_' + _oldSource + '_' + _oldId;
+            if (window._currentSidebarChatSource) {
+                const _oldSource = window._currentSidebarChatSource;
+                const _oldId = window._currentSidebarChatId;
+                const id = 'sidebar-chat_' + _oldSource + '_' + _oldId;
                 const messages = _oldSource === 'story'
-                    ? (window.sidebarDialogueHistories[_oldId] || [])
-                    : window.editDialogueHistory;
+                    ? (state.sidebarSessions[_oldId] || [])
+                    : state.editorSessions;
                 try {
                     await DB.sidebarSessions.put({
                         id, source: _oldSource, sessionId: _oldId,
@@ -1138,14 +1138,14 @@ import { buildGraph } from '../../core/graph.js';
                     });
                 } catch (e) { console.warn('[WorldStory] 保存旧侧边栏会话失败', e); }
             }
-            window._currentSidebarSessionSource = 'edit';
-            window._currentSidebarSessionId = 'story_' + story.id;
-            await window.loadOrCreateSidebarSession('edit', window._currentSidebarSessionId);
-            window.renderSidebarDialogueArea('edit-chat-list', window.editDialogueHistory);
+            window._currentSidebarChatSource = 'edit';
+            window._currentSidebarChatId = 'story_' + story.id;
+            await window.loadOrCreateSidebarSession('edit', window._currentSidebarChatId);
+            window.renderSidebarDialogueArea('edit-chat-list', state.editorSessions);
         }
 
         function exitCollectionEdit() {
-            if (state.isEditingIndependentStory) {
+            if (state.isEditingStandalone) {
                 window.setInterfaceState('dialogue', state.currentData.title);
             } else {
                 const displayName = state.currentData.displayName || state.currentData.title || '设定集';
@@ -1153,14 +1153,14 @@ import { buildGraph } from '../../core/graph.js';
             }
         }
 
-        function handleEditIndependentStorySettingsFromHome() {
-            const independentStories = state.allStories.filter(s => s.type === 'independent');
-            if (independentStories.length === 0) {
+        function handleEditStandaloneStorySettingsFromHome() {
+            const standaloneStories = state.allStories.filter(s => s.type === 'standalone');
+            if (standaloneStories.length === 0) {
                 alert("当前没有独立故事，请先创建一个独立故事。");
                 return;
             }
-            const targetStory = independentStories[0];
-            window.setInterfaceState('independent-story-edit', targetStory.title || targetStory.name);
+            const targetStory = standaloneStories[0];
+            window.setInterfaceState('standalone-story-edit', targetStory.title || targetStory.name);
         }
 
         function switchEditCategory(category, element) {
@@ -1314,7 +1314,7 @@ import { buildGraph } from '../../core/graph.js';
 
         async function addNewSettingItem() {
           window.showNewSettingDialog(async (name, desc) => {
-            var prefix = state.isEditingIndependentStory ? 'independent' : state.currentCollectionId;
+            var prefix = state.isEditingStandalone ? 'standalone' : state.currentLoreSetId;
             var typeCode = state.editActiveCategory.charAt(0);
             var newId = prefix + '-' + typeCode + Date.now();
             var newNode = { id: newId, name: name, type: state.editActiveCategory, desc: desc };
@@ -1322,9 +1322,9 @@ import { buildGraph } from '../../core/graph.js';
             state.currentData.kg.links.push({ source: prefix + '-root', target: newId });
             if (state.editViewMode === 'list') renderEditCards(); else initEditD3ForceGraph();
 
-            if (state.isEditingIndependentStory && state.activeEditingStoryId) {
+            if (state.isEditingStandalone && state.activeStoryId) {
               try {
-                const story = await DB.stories.getById(state.activeEditingStoryId);
+                const story = await DB.stories.getById(state.activeStoryId);
                 if (story) {
                   if (!story.instances) story.instances = { characters: {}, scenes: {}, items: {} };
                   const typeMap = { 'character': 'characters', 'scene': 'scenes', 'prop': 'items' };
@@ -1387,11 +1387,11 @@ window.deleteStory = deleteStory;
 window.showStoryOptionsPopup = showStoryOptionsPopup;
 window.renderCollectionOverview = renderCollectionOverview;
 window.handleCreateNewCollection = handleCreateNewCollection;
-window.handleCreateNewIndependentStory = handleCreateNewIndependentStory;
+window.handleCreateNewStandaloneStory = handleCreateNewStandaloneStory;
 window.enterCollectionEdit = enterCollectionEdit;
-window.enterIndependentStoryEdit = enterIndependentStoryEdit;
+window.enterStandaloneStoryEdit = enterStandaloneStoryEdit;
 window.exitCollectionEdit = exitCollectionEdit;
-window.handleEditIndependentStorySettingsFromHome = handleEditIndependentStorySettingsFromHome;
+window.handleEditStandaloneStorySettingsFromHome = handleEditStandaloneStorySettingsFromHome;
 window.switchEditCategory = switchEditCategory;
 window.setEditViewMode = setEditViewMode;
 window.filterEditCards = filterEditCards;

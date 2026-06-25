@@ -3,10 +3,42 @@ import { DB } from '../core/db.js';
 // --------------------- 辅助函数 ---------------------
 
 async function getCurrentSetting(story) {
-  if (!story?.associatedLoreSetId) return null;
-  // 直接从 DB 查询设定集
+  if (!story) return null;
+
+  if (!story.associatedLoreSetId) {
+    if (!story.instances) return null;
+    return {
+      worldview: { nodes: [], edges: [], history: [], geography: [] },
+      scenes: story.instances.scenes || {},
+      characters: story.instances.characters || {},
+      items: story.instances.items || {}
+    };
+  }
+
   const ls = await DB.loresets.getById(story.associatedLoreSetId);
-  return ls || null;
+  if (!ls) return null;
+  if (!story.instances) return ls;
+
+  const merged = structuredClone(ls);
+  for (const [cid, inst] of Object.entries(story.instances.characters || {})) {
+    if (merged.characters?.[cid] && inst.versions?.length) {
+      const latest = inst.versions[inst.versions.length - 1];
+      merged.characters[cid] = { ...merged.characters[cid], default: { ...merged.characters[cid].default, ...latest } };
+    }
+  }
+  for (const [sid, inst] of Object.entries(story.instances.scenes || {})) {
+    if (merged.scenes?.[sid] && inst.versions?.length) {
+      const latest = inst.versions[inst.versions.length - 1];
+      merged.scenes[sid] = { ...merged.scenes[sid], default: { ...merged.scenes[sid].default, ...latest } };
+    }
+  }
+  for (const [iid, inst] of Object.entries(story.instances.items || {})) {
+    if (merged.items?.[iid] && inst.versions?.length) {
+      const latest = inst.versions[inst.versions.length - 1];
+      merged.items[iid] = { ...merged.items[iid], default: { ...merged.items[iid].default, ...latest } };
+    }
+  }
+  return merged;
 }
 
 function parseJSONFromLLM(text) {

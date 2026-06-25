@@ -42,13 +42,12 @@ function extractFunction(funcName, isAsync) {
 function replaceStateVars(body) {
   // Order matters: longer/more specific first
   const replacements = [
-    ['isEditingIndependentStory', 'state.isEditingIndependentStory'],
-    ['editDialogueHistory', 'state.editDialogueHistory'],
+    ['isEditingStandalone', 'state.isEditingStandalone'],
+    ['editorSessions', 'state.editorSessions'],
     ['editActiveCategory', 'state.editActiveCategory'],
     ['sidebarInputBox', 'state.sidebarInputBox'],
-    ['currentCollectionId', 'state.currentCollectionId'],
     ['currentLoreSetId', 'state.currentLoreSetId'],
-    ['collectionsData', 'state.collectionsData'],
+    ['loresetData', 'state.loresetData'],
     ['editViewMode', 'state.editViewMode'],
     ['currentData', 'state.currentData'],
     ['_modalKG', 'state._modalKG'],

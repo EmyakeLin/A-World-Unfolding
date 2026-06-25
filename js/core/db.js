@@ -70,6 +70,7 @@ const chatSessions = {
 };
 
 const sidebarSessions = {
+  async getAll() { return promisify((await getStore('sidebarSessions')).getAll()); },
   async getById(id) { return promisify((await getStore('sidebarSessions')).get(id)); },
   async getBySession(source, sessionId) { return promisify((await getStore('sidebarSessions')).index('sessionId').get(sessionId)); },
   async put(data) { return promisify((await getStore('sidebarSessions', 'readwrite')).put(data)); },

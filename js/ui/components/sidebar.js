@@ -31,8 +31,8 @@ function renderSidebarCollections() {
     if (!container) return;
     container.innerHTML = '';
 
-    Object.keys(state.collectionsData).forEach(id => {
-        const col = state.collectionsData[id];
+    Object.keys(state.loresetData).forEach(id => {
+        const col = state.loresetData[id];
         const displayName = col.displayName || col.title || `设定集 ${id}`;
 
         const groupDiv = document.createElement('div');
@@ -156,18 +156,18 @@ function renderSidebarCollections() {
     });
 }
 
-function renderSidebarIndependentStories() {
-    const container = document.getElementById('sidebar-independent-container');
+function renderSidebarStandaloneStories() {
+    const container = document.getElementById('sidebar-standalone-container');
     if (!container) return;
     container.innerHTML = '';
 
-    const independentStories = state.allStories.filter(s => s.type === 'independent');
-    independentStories.forEach(story => {
+    const standaloneStories = state.allStories.filter(s => s.type === 'standalone');
+    standaloneStories.forEach(story => {
         const storyTab = document.createElement('div');
         storyTab.className = 'sidebar-tab font-semibold text-slate-700 relative pr-8 group';
-        storyTab.setAttribute('data-id', `independent-${story.name}`);
+        storyTab.setAttribute('data-id', `standalone-${story.name}`);
 
-        if (`independent-${story.name}` === activeTabIdentifier) {
+        if (`standalone-${story.name}` === activeTabIdentifier) {
             storyTab.classList.add('active');
         }
 
@@ -219,5 +219,5 @@ function handleSidebarQuickCreateStory(event) {
 window.toggleSidebar = toggleSidebar;
 window.setActiveSidebarTab = setActiveSidebarTab;
 window.renderSidebarCollections = renderSidebarCollections;
-window.renderSidebarIndependentStories = renderSidebarIndependentStories;
+window.renderSidebarStandaloneStories = renderSidebarStandaloneStories;
 window.handleSidebarQuickCreateStory = handleSidebarQuickCreateStory;

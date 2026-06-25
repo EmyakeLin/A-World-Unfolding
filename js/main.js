@@ -36,63 +36,39 @@ async function init() {
   window._deductionBridge = deductionBridge;
   window.runTick = runTick;
 
-  // Load data from DB into memory
   if (typeof window.loadDataFromDB === 'function') {
     await window.loadDataFromDB();
   }
 
-  // Initialize input boxes
-  if (typeof window.initInputBoxForPage === 'function') {
-    window.initInputBoxForPage('home');
-  }
+  const { state: initState, name: initName } = (typeof window.parseHash === 'function')
+    ? window.parseHash()
+    : { state: 'home', name: '' };
 
-  // Create sidebar input box
   if (typeof window.sendSidebarMessageFromComponent === 'function') {
     state.sidebarInputBox = new InputBox({
       containerId: 'sidebar-input-container',
       type: 'sidebar',
       placeholder: '输入文本...',
       isCompact: true,
-      onSubmit: (val) => {
-        window.sendSidebarMessageFromComponent(val);
-      }
+      onSubmit: (val) => { window.sendSidebarMessageFromComponent(val); }
     });
   }
 
-  // Render UI components
-  if (typeof window.renderStories === 'function') window.renderStories();
-  if (typeof window.renderSidebarItems === 'function') window.renderSidebarItems();
   if (typeof window.renderSidebarCollections === 'function') window.renderSidebarCollections();
-  if (typeof window.renderSidebarIndependentStories === 'function') window.renderSidebarIndependentStories();
+  if (typeof window.renderSidebarStandaloneStories === 'function') window.renderSidebarStandaloneStories();
 
-  // Initialize sidebar dialogue history
-  if (typeof window.renderSidebarDialogueArea === 'function' && typeof window.getSidebarDialogueHistory === 'function') {
-    window.renderSidebarDialogueArea('sidebar-chat-list', window.getSidebarDialogueHistory());
-  }
-
-  // Initialize node bar
-  if (typeof window.buildNodeBar === 'function') window.buildNodeBar();
-
-  // Load local settings (theme, font size, deduction level)
   if (typeof window.setGlobalTheme === 'function') {
-    const initTheme = localStorage.getItem('global-theme') || 'blue-gradient';
-    window.setGlobalTheme(initTheme);
+    window.setGlobalTheme(localStorage.getItem('global-theme') || 'blue-gradient');
   }
   if (typeof window.applyFontSizeStyle === 'function') {
-    const initFontSize = parseInt(localStorage.getItem('font-size') || '12');
-    window.applyFontSizeStyle(initFontSize);
+    window.applyFontSizeStyle(parseInt(localStorage.getItem('font-size') || '12'));
   }
   if (typeof window.setDeductionLevel === 'function') {
-    const initDeductionLevel = localStorage.getItem('deduction-level') || 'Standard';
-    window.setDeductionLevel(initDeductionLevel);
+    window.setDeductionLevel(localStorage.getItem('deduction-level') || 'Standard');
   }
 
-  // Restore page state from URL hash
-  if (typeof window.parseHash === 'function' && typeof window.setInterfaceState === 'function') {
-    const { state: initState, name: initName } = window.parseHash();
-    if (initState !== 'home' || window.location.hash) {
-      await window.setInterfaceState(initState, initName);
-    }
+  if (typeof window.setInterfaceState === 'function') {
+    await window.setInterfaceState(initState, initName);
   }
 
   console.log('[WorldStory] 应用初始化完成');

@@ -449,32 +449,7 @@ function renderDialogueArea() {
 
 // ===== Load story dialogue =====
 async function loadStoryDialogue(storyName) {
-    const saveOld = state._currentSidebarChatSource ? (async () => {
-        const id = 'sidebar-chat_' + state._currentSidebarChatSource + '_' + state._currentSidebarChatId;
-        const messages = state._currentSidebarChatSource === 'story'
-            ? (state.sidebarSessions[state._currentSidebarChatId] || [])
-            : state.editorSessions;
-        try {
-            await DB.sidebarSessions.put({
-                id, source: state._currentSidebarChatSource, sessionId: state._currentSidebarChatId,
-                messages: JSON.parse(JSON.stringify(messages))
-            });
-        } catch (e) { console.warn('[WorldStory] 保存旧侧边栏会话失败', e); }
-    })() : Promise.resolve();
-
-    state._currentSidebarChatSource = 'story';
-    state._currentSidebarChatId = storyName;
-
-    const _storyMeta = state.allStories.find(s => s.name === storyName || s.title === storyName);
-
-    const [, , fullStory] = await Promise.all([
-        saveOld,
-        loadOrCreateSidebarSession('story', storyName),
-        _storyMeta ? DB.stories.getById(_storyMeta.id).catch(() => null) : Promise.resolve(null)
-    ]);
-
     state.activeStoryId = storyName;
-    window._activeFullStory = fullStory || null;
     document.getElementById('dialogue-story-title').textContent = storyName;
 
     let collectionName = null;
@@ -499,9 +474,34 @@ async function loadStoryDialogue(storyName) {
     }
 
     state.activeStoryMessages = state.storySessions[storyName] ? JSON.parse(JSON.stringify(state.storySessions[storyName])) : [];
-
     window.initInputBoxForPage('dialogue');
     renderDialogueArea();
+
+    const _storyMeta = state.allStories.find(s => s.name === storyName || s.title === storyName);
+
+    const saveOld = state._currentSidebarChatSource ? (async () => {
+        const id = 'sidebar-chat_' + state._currentSidebarChatSource + '_' + state._currentSidebarChatId;
+        const messages = state._currentSidebarChatSource === 'story'
+            ? (state.sidebarSessions[state._currentSidebarChatId] || [])
+            : state.editorSessions;
+        try {
+            await DB.sidebarSessions.put({
+                id, source: state._currentSidebarChatSource, sessionId: state._currentSidebarChatId,
+                messages: JSON.parse(JSON.stringify(messages))
+            });
+        } catch (e) { console.warn('[WorldStory] 保存旧侧边栏会话失败', e); }
+    })() : Promise.resolve();
+
+    state._currentSidebarChatSource = 'story';
+    state._currentSidebarChatId = storyName;
+
+    const [, , fullStory] = await Promise.all([
+        saveOld,
+        loadOrCreateSidebarSession('story', storyName),
+        _storyMeta ? DB.stories.getById(_storyMeta.id).catch(() => null) : Promise.resolve(null)
+    ]);
+
+    window._activeFullStory = fullStory || null;
     renderSidebarDialogueArea('sidebar-chat-list', getSidebarDialogueHistory());
     renderSidebarItems();
 }

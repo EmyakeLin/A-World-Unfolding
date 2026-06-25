@@ -51,6 +51,7 @@ export async function executeTool(toolName, args) {
     }
     if (data?.error) return { error: data.error };
     await DB.loresets.put(setting);
+    if (typeof window.refreshLoreSetCache === 'function') await window.refreshLoreSetCache(setting.id);
     return { success: true, data };
   }
 

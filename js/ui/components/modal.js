@@ -503,6 +503,7 @@ document.addEventListener('click', () => {
           else if (rel.type === 'neighbor') { const geo = setting.worldview?.geography?.find(g => g.id === node.id); if (geo) { const nb = geo.neighbors || []; const idx = nb.indexOf(rel.target); if (idx !== -1) nb.splice(idx, 1); geo.neighbors = nb; } }
           else if (rel.type === 'connection') { const hist = setting.worldview?.history?.find(h => h.id === node.id); if (hist) { const conn = hist.connection || []; const idx = conn.indexOf(rel.target); if (idx !== -1) conn.splice(idx, 1); hist.connection = conn; } }
           await DB.loresets.put(setting);
+          if (typeof window.refreshLoreSetCache === 'function') await window.refreshLoreSetCache(setting.id);
           window._editingNodeFull = await loadNodeFullData(node);
         }
 
@@ -560,6 +561,7 @@ document.addEventListener('click', () => {
             if (hist) { const conn = hist.connection || []; if (!conn.includes(targetId)) conn.push(targetId); hist.connection = conn; }
           }
           await DB.loresets.put(setting);
+          if (typeof window.refreshLoreSetCache === 'function') await window.refreshLoreSetCache(setting.id);
           window._editingNodeFull = await loadNodeFullData(node);
           await renderModalGraph(node, window._editingNodeFull);
           closeKgSubModal();
@@ -896,9 +898,9 @@ document.addEventListener('keydown', (e) => {
               else if (node.type === 'character') { if (setting.characters[nodeId]) Object.assign(setting.characters[nodeId], fullData); }
               else if (node.type === 'item') { if (setting.items[nodeId]) Object.assign(setting.items[nodeId], fullData); }
               await DB.loresets.put(setting);
+              if (typeof window.refreshLoreSetCache === 'function') await window.refreshLoreSetCache(setting.id);
             }
           }
-          await window.loadDataFromDB();
           const originNode = state.currentData.kg.nodes.find(n => n.id === nodeId);
           if (originNode) { originNode.name = node.name; originNode.desc = node.desc; }
           if (state.editViewMode === 'list') window.renderEditCards(); else window.initEditD3ForceGraph();

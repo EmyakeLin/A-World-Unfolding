@@ -136,6 +136,39 @@ async function loadDataFromDB() {
 
 window.loadDataFromDB = loadDataFromDB;
 
+async function refreshLoreSetCache(loresetId) {
+    const ls = await DB.loresets.getById(loresetId);
+    if (!ls) return;
+
+    const charNodes = Object.values(ls.characters || {}).map(c => ({ id: c.id, name: c.name, type: 'character', desc: c.default.persona }));
+    const sceneNodes = Object.values(ls.scenes || {}).map(s => ({ id: s.id, name: s.name, type: 'scene', desc: s.default.content.description }));
+    const itemNodes = Object.values(ls.items || {}).map(i => ({ id: i.id, name: i.name, type: 'prop', desc: i.default.content.description }));
+    const worldviewNodes = (ls.worldview.nodes || []).map(n => ({ id: n.id, name: n.name, type: 'worldview', desc: n.content.description }));
+    const allNodes = [...worldviewNodes, ...charNodes, ...sceneNodes, ...itemNodes];
+    const allEdges = (ls.worldview.edges || []).map(e => ({ source: e.subject, target: e.object, label: e.relation }));
+
+    if (state.loresetData[loresetId]) {
+        state.loresetData[loresetId].kg = { nodes: allNodes, links: allEdges };
+        state.loresetData[loresetId].displayName = ls.name;
+        state.loresetData[loresetId].title = ls.name;
+        state.loresetData[loresetId].desc = ls.worldview.nodes[0]?.content.description || '';
+    }
+
+    if (state.currentLoreSetId === loresetId) {
+        state.currentData = state.loresetData[loresetId];
+        if (typeof window.renderSettingsList === 'function' && state.editViewMode === 'list') {
+            window.renderSettingsList();
+        }
+        if (typeof window.initEditD3ForceGraph === 'function' && state.editViewMode === 'graph') {
+            window.initEditD3ForceGraph();
+        }
+    }
+    if (typeof window.renderCollectionOverview === 'function' && document.body.classList.contains('state-collection-overview')) {
+        window.renderCollectionOverview();
+    }
+}
+window.refreshLoreSetCache = refreshLoreSetCache;
+
 window.addEventListener('hashchange', () => {
     const { state: hashState, name } = window.parseHash();
     state._isHashNavigation = true;

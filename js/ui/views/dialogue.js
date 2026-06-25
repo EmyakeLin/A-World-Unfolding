@@ -449,33 +449,32 @@ function renderDialogueArea() {
 
 // ===== Load story dialogue =====
 async function loadStoryDialogue(storyName) {
-    if (state._currentSidebarChatSource) {
-        const _oldSource = state._currentSidebarChatSource;
-        const _oldId = state._currentSidebarChatId;
-        await (async () => {
-            const id = 'sidebar-chat_' + _oldSource + '_' + _oldId;
-            const messages = _oldSource === 'story'
-                ? (state.sidebarSessions[_oldId] || [])
-                : state.editorSessions;
-            try {
-                await DB.sidebarSessions.put({
-                    id, source: _oldSource, sessionId: _oldId,
-                    messages: JSON.parse(JSON.stringify(messages))
-                });
-            } catch (e) { console.warn('[WorldStory] 保存旧侧边栏会话失败', e); }
-        })();
-    }
+    const saveOld = state._currentSidebarChatSource ? (async () => {
+        const id = 'sidebar-chat_' + state._currentSidebarChatSource + '_' + state._currentSidebarChatId;
+        const messages = state._currentSidebarChatSource === 'story'
+            ? (state.sidebarSessions[state._currentSidebarChatId] || [])
+            : state.editorSessions;
+        try {
+            await DB.sidebarSessions.put({
+                id, source: state._currentSidebarChatSource, sessionId: state._currentSidebarChatId,
+                messages: JSON.parse(JSON.stringify(messages))
+            });
+        } catch (e) { console.warn('[WorldStory] 保存旧侧边栏会话失败', e); }
+    })() : Promise.resolve();
+
     state._currentSidebarChatSource = 'story';
     state._currentSidebarChatId = storyName;
-    await loadOrCreateSidebarSession('story', storyName);
+
+    const _storyMeta = state.allStories.find(s => s.name === storyName || s.title === storyName);
+
+    const [, , fullStory] = await Promise.all([
+        saveOld,
+        loadOrCreateSidebarSession('story', storyName),
+        _storyMeta ? DB.stories.getById(_storyMeta.id).catch(() => null) : Promise.resolve(null)
+    ]);
 
     state.activeStoryId = storyName;
-    const _storyMeta = state.allStories.find(s => s.name === storyName || s.title === storyName);
-    if (_storyMeta) {
-        try { window._activeFullStory = await DB.stories.getById(_storyMeta.id); } catch (e) { window._activeFullStory = null; }
-    } else {
-        window._activeFullStory = null;
-    }
+    window._activeFullStory = fullStory || null;
     document.getElementById('dialogue-story-title').textContent = storyName;
 
     let collectionName = null;

@@ -542,14 +542,6 @@ function saveModuleSuffix(module) {
     alert(`${module} 提示词后缀已保存！`);
 }
 
-// 保存各模块提示词后缀
-function saveModuleSuffix(module) {
-    const suffix = document.getElementById(`setting-${module}-suffix`).value;
-    localStorage.setItem(`${module}-suffix`, suffix);
-    refreshUserConfigurablePrompts();
-    alert(`${module} 提示词后缀已保存！`);
-}
-
 function saveNodePlanning() {
     SettingsSaver.saveGroup([
         { key: 'node-planning-model', domId: 'setting-node-planning-model' },
@@ -705,19 +697,6 @@ function saveAssistantBehaviorSettings() {
         { key: 'assistant-detail', domId: 'setting-assistant-detail' },
         { key: 'assistant-workflow', domId: 'setting-assistant-workflow' },
     ]);
-    alert("助手行为设置已保存！");
-}
-
-// 保存助手行为设置
-function saveAssistantBehaviorSettings() {
-    const auth = document.getElementById('setting-assistant-auth').value;
-    const detail = document.getElementById('setting-assistant-detail').value;
-    const workflow = document.getElementById('setting-assistant-workflow').value;
-    
-    localStorage.setItem('assistant-auth', auth);
-    localStorage.setItem('assistant-detail', detail);
-    localStorage.setItem('assistant-workflow', workflow);
-    
     alert("助手行为设置已保存！");
 }
 
